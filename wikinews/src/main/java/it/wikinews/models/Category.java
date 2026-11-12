@@ -1,7 +1,11 @@
 package it.wikinews.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Category {
+    @JsonProperty("name")
     private String name;
+    @JsonProperty("url")
     private String url;
 
     public String getName() {

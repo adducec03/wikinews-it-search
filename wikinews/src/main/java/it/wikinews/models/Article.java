@@ -4,12 +4,19 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Article {
+    @JsonProperty("name")
     private String name;
+    @JsonProperty("identifier")
     private String id;
+    @JsonProperty("abstract")
     private String abstractContent;
     private String content;
+    @JsonProperty("url")
     private String url;
+    @JsonProperty("date_modified")
     private Date dateModified;
     private List<Category> categories = new ArrayList<>();
 
@@ -75,6 +82,9 @@ public class Article {
 
     public void setCategories(List<Category> categories) {
         for (Category category : categories) {
+            if (category.getName() != null) {
+                category.setName(category.getName().replaceAll("(?i)^Categoria\\s*:\\s*", ""));
+            }
             this.categories.add(category);
         }
     }
