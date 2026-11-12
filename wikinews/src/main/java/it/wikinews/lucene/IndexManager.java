@@ -18,20 +18,20 @@ import java.nio.file.Path;
 @Component
 public class IndexManager {
 
-    private String indexPath = "wikinews/index";
+    @Value("${wikinews.index.path}")
+    private Path indexPath;
     private Directory directory;
     private Analyzer analyzer;
     private IndexWriter indexWriter;
 
     @PostConstruct
     public void init() throws IOException {
-        Files.createDirectories(Path.of(indexPath));
-        directory = FSDirectory.open(Path.of(indexPath));
+        Files.createDirectories(indexPath);
+        directory = FSDirectory.open(indexPath);
         analyzer = AnalyzerFactory.createAnalyzer();
-
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
         config.setCodec(new SimpleTextCodec());
-        config.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+        config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 
         indexWriter = new IndexWriter(directory, config);
     }
