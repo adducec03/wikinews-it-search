@@ -17,7 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 @Component
-public class IndexManager {
+public class LuceneManager {
 
     @Value("${wikinews.index.path}")
     private Path indexPath;

@@ -1,7 +1,7 @@
 package it.wikinews.importer;
 
+import it.wikinews.lucene.index.ArticleIndexer;
 import it.wikinews.models.Article;
-import it.wikinews.lucene.ArticleIndexer;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

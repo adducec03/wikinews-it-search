@@ -11,6 +11,8 @@ import org.apache.lucene.analysis.it.ItalianAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 
+import it.wikinews.lucene.index.IndexFields;
+
 public class AnalyzerFactory {
     public static Analyzer createAnalyzer() {
         Analyzer italianAnalyzer = new ItalianAnalyzer();
