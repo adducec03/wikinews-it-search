@@ -9,7 +9,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import it.wikinews.search.SearchService;
+import it.wikinews.lucene.search.SearchService;
 
 @Controller
 public class SearchController {

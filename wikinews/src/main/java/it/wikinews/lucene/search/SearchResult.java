@@ -1,4 +1,4 @@
-package it.wikinews.search;
+package it.wikinews.lucene.search;
 
 import java.util.Date;
 import java.util.List;
