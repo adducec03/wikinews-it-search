@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Wikinews Search')}"></head>
+<body>
+<div class="wrap">
+    <div class="hero">
+        <h1>Wikinews Search</h1>
+        <p>Motore di ricerca sulle notizie di it.wikinews.org</p>
+    </div>
+    <form th:replace="~{fragments :: searchForm}"></form>
+    <div class="help">
+        Esempi: <code>terremoto</code> · <code>"elezioni europee"</code> · <code>+calcio -serie</code> ·
+        <code>categories:sport</code>
+    </div>
+</div>
+</body>
+</html>

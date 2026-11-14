@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Risultati · Wikinews Search')}"></head>
+<body>
+<div class="wrap">
+    <header class="top"><a href="/">Wikinews Search</a></header>
+    <form th:replace="~{fragments :: searchForm}"></form>
+
+    <div class="error" th:if="${error}" th:text="${error}" role="alert"></div>
+
+    <p class="meta" th:if="${response}">
+        <span th:text="${#numbers.formatInteger(response.totalHits, 1, 'POINT')}">0</span> risultati
+        (<span th:text="${response.tookMs}">0</span> ms) — pagina
+        <span th:text="${response.page}">1</span> di <span th:text="${response.totalPages}">1</span>
+    </p>
+    <p class="meta" th:if="${response == null and error == null}">Inserisci una query per iniziare.</p>
+
+    <section th:if="${response}">
+        <p th:if="${response.results.empty}">Nessun risultato.</p>
+        <article class="hit" th:each="r : ${response.results}">
+            <h2><a th:href="${r.url}" th:text="${r.title}" target="_blank" rel="noopener">Titolo</a></h2>
+            <div class="meta" style="margin:0" th:if="${r.date}"
+                 th:text="${#dates.format(r.date, 'dd/MM/yyyy')}">01/01/2025</div>
+            <p class="snippet" th:utext="${r.snippet}">snippet</p>
+            <div class="tags">
+                <a th:each="c : ${r.categories}" th:text="${c}"
+                   th:href="@{/search(q=${q}, category=${c}, sort=${sort})}">categoria</a>
+            </div>
+        </article>
+
+        <nav class="pager" aria-label="Paginazione" th:if="${response.totalPages > 1}">
+            <a th:if="${response.page > 1}"
+               th:href="@{/search(q=${q}, category=${category}, from=${from}, to=${to}, sort=${sort}, page=${response.page - 1})}">← Precedente</a>
+            <span th:unless="${response.page > 1}"></span>
+            <a th:if="${response.page < response.totalPages}"
+               th:href="@{/search(q=${q}, category=${category}, from=${from}, to=${to}, sort=${sort}, page=${response.page + 1})}">Successiva →</a>
+        </nav>
+    </section>
+</div>
+</body>
+</html>
