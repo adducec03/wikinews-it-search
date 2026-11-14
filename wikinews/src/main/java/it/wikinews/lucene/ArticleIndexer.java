@@ -7,6 +7,7 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 
@@ -41,6 +42,7 @@ public class ArticleIndexer {
         document.add(new StringField(IndexFields.URL, article.getUrl(), Field.Store.YES));
         document.add(new LongPoint(IndexFields.DATE_MODIFIED, article.getDateModified().getTime()));
         document.add(new StoredField(IndexFields.DATE_MODIFIED, article.getDateModified().getTime()));
+        document.add(new NumericDocValuesField(IndexFields.DATE_MODIFIED, article.getDateModified().getTime()));
         document.add(new TextField(IndexFields.CATEGORIES, article.getCategoriesAsString(), Field.Store.YES));
         document.add(new StringField(IndexFields.ID, article.getId(), Field.Store.YES));
         return document;

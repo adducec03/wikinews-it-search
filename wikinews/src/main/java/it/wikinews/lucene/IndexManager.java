@@ -6,6 +6,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.codecs.simpletext.SimpleTextCodec;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,7 @@ public class IndexManager {
     private Directory directory;
     private Analyzer analyzer;
     private IndexWriter indexWriter;
+    private SearcherManager searcherManager;
 
     @PostConstruct
     public void init() throws IOException {
@@ -34,6 +36,15 @@ public class IndexManager {
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 
         indexWriter = new IndexWriter(directory, config);
+        searcherManager = new SearcherManager(indexWriter, null);
+    }
+
+    public SearcherManager getSearcherManager() {
+        return searcherManager;
+    }
+
+    public Analyzer getAnalyzer() {
+        return analyzer;
     }
 
     public IndexWriter getIndexWriter() {
@@ -42,6 +53,9 @@ public class IndexManager {
 
     @PreDestroy
     public void close() throws IOException {
+        if (searcherManager != null) {
+            searcherManager.close();
+        }
         if (indexWriter != null) {
             indexWriter.close();
         }
