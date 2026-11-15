@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<!--/*
+  BARRA DI RICERCA
+  Uso: <form th:replace="~{fragments/searchBar :: searchBar}"></form>
+
+  Il form invia una GET a /search. Ogni campo ha un "name" che
+  corrisponde a un @RequestParam di SearchController.search():
+
+    name nel form | @RequestParam      | tipo        | default
+    --------------+--------------------+-------------+-----------
+    q             | q                  | String      | ""
+    category      | category           | String      | ""
+    from          | from               | LocalDate   | null
+    to            | to                 | LocalDate   | null
+    sort          | sort               | String      | "relevance"  (oppure "date")
+    (link pagina) | page               | int         | 1
+
+  Il th:value="${...}" rimette nel campo il valore inviato prima:
+  vengono dal Model riempito dal controller (model.addAttribute).
+*/-->
+<form th:fragment="searchBar" class="search" action="/search" method="get" role="search">
+
+    <!-- Testo libero  ->  parametro "q" -->
+    <div class="row">
+        <input type="text" name="q" th:value="${q}"
+               placeholder="Cerca nelle notizie di Wikinews…" aria-label="Cerca" autofocus>
+        <button type="submit">Cerca</button>
+    </div>
+
+    <!-- Filtri e ordinamento (aperto se almeno un filtro e' attivo) -->
+    <details th:open="${!#strings.isEmpty(category) or from != null or to != null or sort == 'date'}">
+        <summary>Filtri e ordinamento</summary>
+        <div class="row row-filters">
+
+            <!-- Filtro categoria  ->  parametro "category" -->
+            <input type="text" name="category" th:value="${category}"
+                   placeholder="Categoria" aria-label="Categoria">
+
+            <!-- Intervallo date  ->  parametri "from" e "to" (formato yyyy-MM-dd) -->
+            <label>Dal <input type="date" name="from" th:value="${from}"></label>
+            <label>al <input type="date" name="to" th:value="${to}"></label>
+
+            <!-- Ordinamento  ->  parametro "sort" ("relevance" o "date") -->
+            <select name="sort" aria-label="Ordinamento">
+                <option value="relevance" th:selected="${sort != 'date'}">Più rilevanti</option>
+                <option value="date" th:selected="${sort == 'date'}">Più recenti</option>
+            </select>
+        </div>
+    </details>
+</form>
+</html>
