@@ -27,9 +27,11 @@ public class SearchService {
     private static final int SNIPPET_FALLBACK_LENGTH = 250;
 
     private final ArticleSearcher articleSearcher;
+    private final QuerySuggestionService querySuggestionService;
 
-    public SearchService(ArticleSearcher articleSearcher) {
+    public SearchService(ArticleSearcher articleSearcher, QuerySuggestionService querySuggestionService) {
         this.articleSearcher = articleSearcher;
+        this.querySuggestionService = querySuggestionService;
     }
 
     /**
@@ -51,11 +53,21 @@ public class SearchService {
             int upTo = safePage * pageSize;
             TopDocs top = articleSearcher.search(searcher, query, upTo, sortByDate);
 
+            String suggestedQuery = null;
+            Query suggestedLuceneQuery = null;
+            if (top.totalHits.value == 0 && hasText) {
+                suggestedQuery = querySuggestionService.suggest(text,searcher.getIndexReader());
+                if (suggestedQuery != null) {
+                    suggestedLuceneQuery = QueryFactory.build(analyzer, suggestedQuery, category, from, to);
+                    top = articleSearcher.search(searcher, suggestedLuceneQuery, upTo, sortByDate);
+                }
+            }
+
             int fromIdx = Math.min((safePage - 1) * pageSize, top.scoreDocs.length);
-            List<SearchResult> results = getSearchResults(fromIdx, query, top, searcher, analyzer, hasText);
+            List<SearchResult> results = getSearchResults(fromIdx, suggestedQuery != null ? suggestedLuceneQuery : query, top, searcher, analyzer, hasText);
             
             long took = (System.nanoTime() - start) / 1_000_000;
-            return new SearchResponse(text, top.totalHits.value, safePage, pageSize, took, results);
+            return new SearchResponse(text, suggestedQuery, top.totalHits.value, safePage, pageSize, took, results);
         } finally {
             articleSearcher.releaseSearcher(searcher);
         }
