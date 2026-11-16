@@ -21,12 +21,21 @@ import it.wikinews.lucene.index.IndexFields;
 
 public class QueryFactory {
 
+    // quante posizioni di distanza sono tollerate tra le parole
+    // es query "elezioni comunali roma"
+    // per il testo "elezioni comunali a roma" rientra nel proximity slop e ha proximity boost
+    // per il testo "elezioni comunali [..500 parole...] roma" non ha il proximity boost
     private static final int PROXIMITY_SLOP = 3;
+    // quanto boosta se le parole rientrano in proximity slop
     private static final float PROXIMITY_BOOST = 2.0f;
 
+    // termine nel titolo vale x3
     private static final float NAME_BOOST = 3f;
+    // termine nell'abstract vale x2
     private static final float ABSTRACT_BOOST = 2f;
+    // termine nel contenuto vale x1
     private static final float CONTENT_BOOST = 1f;
+    // termine nella categoria vale x1
     private static final float CATEGORIES_BOOST = 1f;
 
 
