@@ -15,6 +15,9 @@ public class ImportService {
     private final ArticleParser articleParser;
     private final ArticleIndexer articleIndexer;
 
+    @Value ("${wikinews.data.maxArticle}")
+    private Integer MAX_ARTICLE_IMPORT;
+
     @Value("${wikinews.data.path}")
     private Path dumpPath;
 
@@ -29,7 +32,7 @@ public class ImportService {
         int[] count = {0};
         jsonReader.read(dumpPath, json -> {
             try {
-                if (count[0] > 10) {
+                if (count[0] > MAX_ARTICLE_IMPORT) {
                     return;
                 }
                 Article article = articleParser.parse(json);
