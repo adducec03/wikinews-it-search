@@ -9,6 +9,7 @@ import org.apache.lucene.analysis.StopFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.it.ItalianAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 
 import it.wikinews.lucene.index.IndexFields;
@@ -29,8 +30,11 @@ public class AnalyzerFactory {
                 return new TokenStreamComponents(tokenizer, tokenStream);
             }
         };
+        Analyzer suggestAnalyzer = new StandardAnalyzer();
+        
         Map<String, Analyzer> byField = Map.of(
-            IndexFields.CATEGORIES, categoryAnalyzer
+            IndexFields.CATEGORIES, categoryAnalyzer,
+            IndexFields.SUGGEST_TERMS, suggestAnalyzer
         );
 
         return new PerFieldAnalyzerWrapper(italianAnalyzer, byField);

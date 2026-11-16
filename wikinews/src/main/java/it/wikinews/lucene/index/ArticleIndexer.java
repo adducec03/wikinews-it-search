@@ -45,6 +45,13 @@ public class ArticleIndexer {
         document.add(new NumericDocValuesField(IndexFields.DATE_MODIFIED, article.getDateModified().getTime()));
         document.add(new TextField(IndexFields.CATEGORIES, article.getCategoriesAsString(), Field.Store.YES));
         document.add(new StringField(IndexFields.ID, article.getId(), Field.Store.YES));
+        
+        String suggestTerms = String.join(" ", article.getName(), 
+            article.getAbstractContent() != null
+                ? article.getAbstractContent()
+                : ""
+        );
+        document.add(new TextField(IndexFields.SUGGEST_TERMS, suggestTerms, Field.Store.NO));
         return document;
     }
 }

@@ -28,10 +28,12 @@ public class SearchService {
 
     private final ArticleSearcher articleSearcher;
     private final Analyzer analyzer;
+    private final QuerySuggestionService querySuggestionService;
 
-    public SearchService(ArticleSearcher articleSearcher) {
+    public SearchService(ArticleSearcher articleSearcher, QuerySuggestionService querySuggestionService) {
         this.articleSearcher = articleSearcher;
-        analyzer = AnalyzerFactory.createAnalyzer();
+        this.analyzer = AnalyzerFactory.createAnalyzer();
+        this.querySuggestionService = querySuggestionService;
     }
 
     /**
@@ -58,12 +60,22 @@ public class SearchService {
             int upTo = safePage * pageSize;
             TopDocs top = articleSearcher.search(searcher, query, upTo, useDateSort);
 
+            String suggestedQuery = null;
+            Query suggestedLuceneQuery = null;
+            if (top.totalHits.value == 0 && hasText) {
+                suggestedQuery = querySuggestionService.suggest(text,searcher.getIndexReader());
+                if (suggestedQuery != null) {
+                    suggestedLuceneQuery = QueryFactory.build(analyzer, suggestedQuery, category, from, to);
+                    top = articleSearcher.search(searcher, suggestedLuceneQuery, upTo, sortByDate);
+                }
+            }
+
             int fromIdx = Math.min((safePage - 1) * pageSize, top.scoreDocs.length);
-            List<SearchResult> results = getSearchResults(fromIdx, query, top, searcher, analyzer, hasText);
+            List<SearchResult> results = getSearchResults(fromIdx, suggestedQuery != null ? suggestedLuceneQuery : query, top, searcher, analyzer, hasText);
             
             long took = (System.nanoTime() - start) / 1_000_000;
             long total = searcher.count(query);
-            return new SearchResponse(text, total, safePage, pageSize, took, results);
+            return new SearchResponse(text, suggestedQuery, total, safePage, pageSize, took, results);
         } finally {
             articleSearcher.releaseSearcher(searcher);
         }

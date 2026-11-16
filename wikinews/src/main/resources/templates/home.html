@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Wikinews Search')}"></head>
+<body>
+
+<header th:replace="~{fragments/header :: header}"></header>
+
+<main class="wrap">
+    <section class="hero">
+        <h1>Cerca nelle notizie</h1>
+        <p>Motore di ricerca sulle notizie di it.wikinews.org</p>
+    </section>
+
+    <form th:replace="~{fragments/searchBar :: searchBar}"></form>
+
+    <div class="help">
+        Esempi: <code>terremoto</code> · <code>"elezioni europee"</code> · <code>+calcio -serie</code> ·
+        <code>categories:sport</code>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer}"></footer>
+
+</body>
+</html>

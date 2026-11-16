@@ -14,4 +14,6 @@ public final class IndexFields {
 
     public static final String DATE_MODIFIED = "date_modified";
     public static final String CATEGORIES = "categories";
+
+    public static final String SUGGEST_TERMS = "suggest_terms";
 }
