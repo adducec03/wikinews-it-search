@@ -56,7 +56,8 @@ public class SearchService {
             List<SearchResult> results = getSearchResults(fromIdx, query, top, searcher, analyzer, hasText);
             
             long took = (System.nanoTime() - start) / 1_000_000;
-            return new SearchResponse(text, top.totalHits.value, safePage, pageSize, took, results);
+            long total = searcher.count(query);
+            return new SearchResponse(text, total, safePage, pageSize, took, results);
         } finally {
             articleSearcher.releaseSearcher(searcher);
         }
