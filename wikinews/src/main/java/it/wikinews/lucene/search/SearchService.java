@@ -27,9 +27,11 @@ public class SearchService {
     private static final int SNIPPET_FALLBACK_LENGTH = 250;
 
     private final ArticleSearcher articleSearcher;
+    private final Analyzer analyzer;
 
     public SearchService(ArticleSearcher articleSearcher) {
         this.articleSearcher = articleSearcher;
+        analyzer = AnalyzerFactory.createAnalyzer();
     }
 
     /**
@@ -42,20 +44,26 @@ public class SearchService {
     public SearchResponse search(String text, String category, LocalDate from, LocalDate to,
                                  boolean sortByDate, int page, int pageSize) throws ParseException, IOException {
         long start = System.nanoTime();
-        Analyzer analyzer = AnalyzerFactory.createAnalyzer();
-        boolean hasText = text != null && !text.isBlank();
+        boolean hasText = (text != null) && (!text.isBlank());
+        boolean useDateSort = sortByDate;
+        // se non c'è testo nella query (es filtra solo per categoria o data) allora ordina per data
+        // evita che tutti i documenti hanno stesso punteggio e l'ordine è casuale
+        if (!hasText) {
+            useDateSort = true;
+        }
         Query query = QueryFactory.build(analyzer, text, category, from, to);
         IndexSearcher searcher = articleSearcher.acquireSearcher();
         try { 
             int safePage = Math.max(1, page);
             int upTo = safePage * pageSize;
-            TopDocs top = articleSearcher.search(searcher, query, upTo, sortByDate);
+            TopDocs top = articleSearcher.search(searcher, query, upTo, useDateSort);
 
             int fromIdx = Math.min((safePage - 1) * pageSize, top.scoreDocs.length);
             List<SearchResult> results = getSearchResults(fromIdx, query, top, searcher, analyzer, hasText);
             
             long took = (System.nanoTime() - start) / 1_000_000;
-            return new SearchResponse(text, top.totalHits.value, safePage, pageSize, took, results);
+            long total = searcher.count(query);
+            return new SearchResponse(text, total, safePage, pageSize, took, results);
         } finally {
             articleSearcher.releaseSearcher(searcher);
         }
