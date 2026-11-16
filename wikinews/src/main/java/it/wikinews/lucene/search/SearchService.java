@@ -27,9 +27,11 @@ public class SearchService {
     private static final int SNIPPET_FALLBACK_LENGTH = 250;
 
     private final ArticleSearcher articleSearcher;
+    private final Analyzer analyzer;
 
     public SearchService(ArticleSearcher articleSearcher) {
         this.articleSearcher = articleSearcher;
+        analyzer = AnalyzerFactory.createAnalyzer();
     }
 
     /**
@@ -42,7 +44,6 @@ public class SearchService {
     public SearchResponse search(String text, String category, LocalDate from, LocalDate to,
                                  boolean sortByDate, int page, int pageSize) throws ParseException, IOException {
         long start = System.nanoTime();
-        Analyzer analyzer = AnalyzerFactory.createAnalyzer();
         boolean hasText = text != null && !text.isBlank();
         Query query = QueryFactory.build(analyzer, text, category, from, to);
         IndexSearcher searcher = articleSearcher.acquireSearcher();
