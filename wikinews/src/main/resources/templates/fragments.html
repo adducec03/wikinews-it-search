@@ -52,7 +52,41 @@
     <details th:open="${!#strings.isEmpty(category) or from != null or to != null or sort == 'date'}">
         <summary>Filtri e ordinamento</summary>
         <div class="row" style="margin-top:8px">
-            <input type="text" name="category" th:value="${category}" placeholder="Categoria" aria-label="Categoria">
+        <input type="text" id="category-input" name="category" list="category-list"
+            autocomplete="off" th:value="${category}" placeholder="Categoria" aria-label="Categoria">
+        <datalist id="category-list"></datalist>
+
+        <script>
+            var categoryInput = document.getElementById("category-input");
+            var categoryList = document.getElementById("category-list");
+            var categoryTimer = null;
+
+            categoryInput.addEventListener("input", function () {
+                clearTimeout(categoryTimer);
+
+                categoryTimer = setTimeout(function () {
+                    var text = categoryInput.value.trim();
+
+                    if (text === "") {
+                        categoryList.innerHTML = "";
+                        return;
+                    }
+
+                    fetch("/categories?q=" + encodeURIComponent(text))
+                        .then(function (response) {
+                            return response.json();
+                        })
+                        .then(function (names) {
+                            categoryList.innerHTML = "";
+                            for (var i = 0; i < names.length; i++) {
+                                var option = document.createElement("option");
+                                option.value = names[i];
+                                categoryList.appendChild(option);
+                            }
+                        });
+                }, 150);
+            });
+        </script>
             <label>Dal <input type="date" name="from" th:value="${from}"></label>
             <label>al <input type="date" name="to" th:value="${to}"></label>
             <select name="sort" aria-label="Ordinamento">

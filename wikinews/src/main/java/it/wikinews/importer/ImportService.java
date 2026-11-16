@@ -29,7 +29,7 @@ public class ImportService {
         int[] count = {0};
         jsonReader.read(dumpPath, json -> {
             try {
-                if (count[0] > 10) {
+                if (count[0] > 99999) {
                     return;
                 }
                 Article article = articleParser.parse(json);
