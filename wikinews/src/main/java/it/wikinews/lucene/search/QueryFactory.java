@@ -55,6 +55,8 @@ public class QueryFactory {
                 )
             );
 
+        parser.setDefaultOperator(QueryParser.Operator.AND);
+
         return parser.parse(text);
     }
 
