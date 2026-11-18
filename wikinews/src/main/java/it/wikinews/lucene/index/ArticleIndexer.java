@@ -35,7 +35,7 @@ public class ArticleIndexer {
 
     private Document articleToDocument(Article article) {
         Document document = new Document();
-        
+        //TODO inizializzare in caso di null
         document.add(new TextField(IndexFields.NAME, article.getName(), Field.Store.YES));
         document.add(new TextField(IndexFields.CONTENT, article.getContent(), Field.Store.YES));
         document.add(new TextField(IndexFields.ABSTRACT, article.getAbstractContent(), Field.Store.YES));

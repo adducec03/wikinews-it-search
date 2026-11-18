@@ -15,7 +15,10 @@ import it.wikinews.lucene.index.IndexFields;
 
 public class AnalyzerFactory {
     public static Analyzer createAnalyzer() {
+        //Analyzer standard per i campi senza analyzer specificato
         Analyzer italianAnalyzer = new ItalianAnalyzer();
+
+        //Creazione dell'analyzer per il campo CATEGORIES
         CharArraySet stopwords = new CharArraySet(ItalianAnalyzer.getDefaultStopSet(), true);
         stopwords.add("pubblicati");
         stopwords.add("articoli");
@@ -29,6 +32,8 @@ public class AnalyzerFactory {
                 return new TokenStreamComponents(tokenizer, tokenStream);
             }
         };
+
+        //Raccolta degli analyzer speficifici per ogni campo
         Map<String, Analyzer> byField = Map.of(
             IndexFields.CATEGORIES, categoryAnalyzer
         );
