@@ -2,5 +2,6 @@
 - [ ] aggiornare front end
 - [ ] aggiungere altri modi per testare il sistema (es ablation study)
 - [ ] creare un readme decente (come funzione, com'è stato testato, come installarlo)
-- [ ] risolvere problema di indicizzazione articoli con campi vuoti
+- [x] risolvere problema di indicizzazione articoli con campi vuoti
 - [ ] verificare se le scelte fatte sono utili o vanno cambiate
+- [ ] problema da risolvere nella categorie (appaiono date, "articoli con box inseriti verso wikipedia", ecc)

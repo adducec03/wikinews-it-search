@@ -106,7 +106,21 @@ public class SearchService {
             Number millis = doc.getField(IndexFields.DATE_MODIFIED) != null
                     ? doc.getField(IndexFields.DATE_MODIFIED).numericValue() 
                     : null;
-            results.add(new SearchResult(doc.get(IndexFields.NAME), doc.get(IndexFields.URL), snippet, millis != null ? new Date(millis.longValue()) : null, splitCategories(doc.get(IndexFields.CATEGORIES)), slice[i].score));
+            Date date = null;
+            if (millis != null) {
+                date = new Date(millis.longValue());
+            }
+
+            // l'id ("identifier" del dump) serve alla valutazione: è stabile tra un'indicizzazione e l'altra
+            SearchResult result = new SearchResult(
+                    doc.get(IndexFields.ID),
+                    doc.get(IndexFields.NAME),
+                    doc.get(IndexFields.URL),
+                    snippet,
+                    date,
+                    splitCategories(doc.get(IndexFields.CATEGORIES)),
+                    slice[i].score);
+            results.add(result);
         }
 
         return results;
