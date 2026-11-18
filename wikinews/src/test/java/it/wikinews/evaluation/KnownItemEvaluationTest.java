@@ -121,6 +121,8 @@ class KnownItemEvaluationTest {
 
         System.out.println();
         System.out.println("=== KNOWN-ITEM: " + sample.size() + " articoli, risultati considerati: " + SEARCH_DEPTH + " ===");
+        // i pesi usati: indispensabile per confrontare le configurazioni dell'ablation
+        System.out.println("Pesi: " + searchService.getSettings());
         titleResult.print();
         textResult.print();
         System.out.println("Dettaglio per query: " + OUTPUT.toAbsolutePath());

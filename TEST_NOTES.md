@@ -30,6 +30,7 @@ l'efficacia dimostra che funziona *bene* e permette di giustificare le scelte co
 |---|---|---|---|---|
 | `WikinewsApplicationTests` | — | memoria, 7 articoli | analyzer, boost, sintassi, filtri, ordinamento, paginazione, snippet, casi limite, latenza | `./mvnw test` |
 | `IrMetricsTest` | — | nessuno | le formule delle metriche su esempi calcolati a mano | `./mvnw test` |
+| `QueryFactorySettingsTest` | — | nessuno | i pesi di `SearchSettings` finiscono davvero nella query (boost, campo escluso, prossimità) | `./mvnw test` |
 | `RealIndexPerformanceTest` | — (da aggiungere `evaluation`) | quello dell'app | latenza di 21 query tipiche | `./mvnw test -Dtest=RealIndexPerformanceTest` |
 | `PoolBuilderTest` | `evaluation` | completo | genera il pool da giudicare a mano | `./mvnw test -Dtest=PoolBuilderTest -DexcludedGroups=none` |
 | `KnownItemEvaluationTest` | `evaluation` | completo | known-item: MRR, Success@1, Success@10 | `./mvnw test -Dtest=KnownItemEvaluationTest -DexcludedGroups=none` |
@@ -110,8 +111,16 @@ Regole per i giudizi manuali:
 5. Con poche query il rischio di overfitting è alto: scegliere i parametri su metà delle query e
    riportare i risultati sull'altra metà.
 
-**Prerequisito:** oggi boost, operatore e prossimità sono costanti in `QueryFactory`. Vanno resi
-configurabili (per esempio una classe `SearchSettings`) per provare le varianti in un'unica esecuzione.
+**Configurazione:** i boost dei campi e la prossimità sono in `SearchSettings` (default in
+`application.properties`, prefisso `wikinews.search`). Boost 0 = campo escluso, `proximity-boost=0` = prossimità
+disattivata. Per provare una variante senza toccare il codice basta passarla da riga di comando:
+
+```bash
+./mvnw test -Dtest=KnownItemEvaluationTest -DexcludedGroups=none -Dwikinews.search.name-boost=1
+```
+
+Il test stampa sempre la riga `Pesi: ...` con la configurazione usata: copiarla insieme ai risultati.
+L'operatore AND/OR non è ancora configurabile.
 
 ### Scelte da verificare
 
@@ -132,7 +141,8 @@ configurabili (per esempio una classe `SearchSettings`) per provare le varianti 
 | Configurazione | MRR (titolo) | MRR (testo) | Success@10 (testo) | P@10 | MAP | nDCG@10 | Latenza media |
 |---|---|---|---|---|---|---|---|
 | Completa (attuale) | 0,959 | 0,830 | 0,893 | | | | |
-| − boost dei campi | | | | | | | |
+| Titolo con boost 1 invece di 3 | 0,920 | 0,847 | 0,895 | | | | |
+| − boost dei campi (tutti a 1) | | | | | | | |
 | OR invece di AND | | | | | | | |
 | − prossimità | | | | | | | |
 | − categorie nella ricerca | | | | | | | |
@@ -150,7 +160,19 @@ configurabili (per esempio una classe `SearchSettings`) per provare le varianti 
 | Titolo | 500 | 0,959 | 0,938 | 0,996 | 0 |
 | 4 parole del testo | 429 | 0,830 | 0,795 | 0,893 | 20 |
 
-Osservazioni:
+### Ablation: boost del titolo (known-item, 2026-11-19)
+
+| Boost titolo | MRR titolo | Success@1 titolo | MRR testo | Success@1 testo |
+|---|---|---|---|---|
+| 3 (attuale) | **0,959** | **0,938** | 0,830 | 0,795 |
+| 1 | 0,920 | 0,880 | **0,847** | **0,818** |
+
+Il boost del titolo aiuta chi cerca con le parole del titolo (+0,04 MRR) ma penalizza un po' chi cerca con
+parole del testo (−0,02 MRR): premiando il titolo, gli articoli che hanno *nel titolo* quelle parole
+superano l'articolo cercato, che le ha solo nel testo. È il compromesso atteso; serve la valutazione
+per argomento (categorie o giudizi manuali) per decidere il valore finale.
+
+Osservazioni sul known-item:
 - 71 articoli hanno un abstract troppo corto per la variante dal testo.
 - Quasi tutti i non trovati sono cronache sportive con lo stesso schema ("Calcio, Serie A 2011-2012: 35ª giornata"):
   le parole scelte compaiono in centinaia di articoli quasi identici. Limite del metodo più che del motore.

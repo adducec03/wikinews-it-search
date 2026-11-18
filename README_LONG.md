@@ -117,8 +117,10 @@ Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già sc
   quindi la query è ambigua anche per un umano. È un limite del metodo, non solo del motore.
 
 ### 2. Ablation study e verifica delle scelte
-- [ ] Rendere configurabili boost, AND/OR e prossimità (oggi costanti in `QueryFactory`), per provarli senza modificare il codice
+- [x] Boost dei campi e prossimità configurabili (`SearchSettings`, proprietà `wikinews.search.*`), con `QueryFactorySettingsTest`
+- [ ] Rendere configurabile anche l'operatore AND/OR
 - [ ] Confrontare, una scelta alla volta:
+  - [x] boost del titolo 3 contro 1 (risultati in `TEST_NOTES.md`)
   - [ ] boost dei campi 3/2/1/1 contro tutti a 1
   - [ ] AND contro OR
   - [ ] prossimità attiva / disattivata / slop diversi
@@ -163,6 +165,7 @@ Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già sc
 
 | Data | Branch | Modifica |
 |---|---|---|
+| 2026-11-19 | `dev/adducec` | Boost configurabili (`SearchSettings`), `QueryFactorySettingsTest`, prima ablation sul boost del titolo |
 | 2026-11-18 | `dev/adducec` | Creato `TEST_NOTES.md` (strategia, metriche, piano di ablation) |
 | 2026-11-18 | `dev/adducec` | Valutazione automatica known-item (`KnownItemEvaluationTest`) |
 | 2026-11-18 | `dev/adducec` | 28 query di valutazione, `PoolBuilderTest`, tag `evaluation` escluso di default nel `pom.xml` |
