@@ -83,15 +83,17 @@ Ultimo aggiornamento: 2026-11-18
 - [ ] **Controllo umano dei giudizi**: 20 righe a caso, misurare l'accordo con il modello (~10 minuti)
 - [x] `RetrievalEvaluationTest`: P@10, Recall@100, MAP, MRR, nDCG@10 per ogni configurazione in un'unica esecuzione
       (collaudato con giudizi finti; viene saltato finché `qrels.tsv` non esiste)
-- [ ] Efficienza sull'indice completo: tempo di indicizzazione, dimensione dell'indice, latenza
-      (la tabella nel `README.MD` viene da un indice di 100 articoli)
+- [x] Efficienza sull'indice completo (`EfficiencyEvaluationTest`): tempo di indicizzazione, dimensione dell'indice,
+      latenza, con `SimpleTextCodec` e codec di default (risultati in `TEST_NOTES.md`)
+- [x] `RealIndexPerformanceTest` sull'indice completo, con tag `evaluation`
+- [ ] Aggiornare la tabella delle latenze nel `README.MD` (oggi viene da un indice di 100 articoli)
+- [ ] Togliere `SimpleTextCodec` da `LuceneManager` (indice 9× più piccolo, ricerche 2–3× più veloci)
 - [x] **Valutazione automatica known-item** (`KnownItemEvaluationTest`): 500 articoli scelti a caso (seme fisso)
       cercano se stessi, con query dal titolo e con 4 parole del testo non presenti nel titolo.
       Lancio: `./mvnw test -Dtest=KnownItemEvaluationTest -DexcludedGroups=none` (circa 40 s).
       Dettaglio per query in `target/evaluation/known-item.tsv`
 - [ ] Valutazione automatica con le categorie come giudizi (escludendo il campo `categories` dalla ricerca)
 - [x] Tag JUnit `evaluation` per i test sull'indice reale, esclusi dal normale `./mvnw test`
-- [ ] Mettere `@Tag("evaluation")` anche su `RealIndexPerformanceTest`
 - [ ] Ampliare il pool con i risultati delle varianti dell'ablation (oggi viene da una sola configurazione)
 - [ ] Efficienza dell'indicizzazione: articoli al secondo e dimensione dell'indice su disco
 - [ ] Copertura: test automatico righe del dump = articoli indicizzati, documenti = id distinti
@@ -138,7 +140,7 @@ Le query da giudicare e le configurazioni confrontate sono in `PoolBuilderTest` 
         (prossimità utile, AND con costo localizzato su q20; risultati in `TEST_NOTES.md`)
   - [ ] BM25 contro TF-IDF (`ClassicSimilarity`)
   - [ ] `ItalianAnalyzer` contro `StandardAnalyzer` (serve un secondo indice)
-  - [ ] `SimpleTextCodec` contro codec di default (tempo e dimensione dell'indice)
+  - [x] `SimpleTextCodec` contro codec di default (tempo e dimensione dell'indice)
 - [ ] Scegliere la configurazione su metà delle query e riportare i risultati sull'altra metà (evita l'overfitting)
 - [ ] Analisi degli errori: 2–3 query in cui il sistema sbaglia, con il motivo
 
@@ -164,7 +166,7 @@ Le query da giudicare e le configurazioni confrontate sono in `PoolBuilderTest` 
 | Problema | Dove | Effetto |
 |---|---|---|
 | 4 test falliscono: `SearchService` creato con `null` al posto di `QuerySuggestionService` | `WikinewsApplicationTests.java:182` | `luceneSyntax`, `sorting`, `errorsAndEdgeCases`, `searcherRefresh` vanno in `NullPointerException` |
-| `RealIndexPerformanceTest` misura un indice di soli 100 articoli | `@SpringBootTest` usa `maxArticle=99` | tempi e numeri di risultati non rappresentativi; anche la tabella nel `README.MD` |
+| La tabella delle latenze nel `README.MD` viene da un indice di 100 articoli | `README.MD` | numeri non rappresentativi (il test ora usa l'indice completo: rilanciarlo e aggiornare la tabella) |
 | `SimpleTextCodec` e `OpenMode.CREATE` | `LuceneManager` | indice lento e grande, ricostruito a ogni avvio |
 | `maxArticle` sbagliato di uno e il file viene letto tutto anche oltre il limite | `ImportService` | con `maxArticle=99` si indicizzano 100 articoli |
 | Il filtro categoria è una frase sul campo analizzato | `QueryFactory.addCategoryFilter` | "Italia" trova anche "Calcio in Italia"; serve un campo con una categoria per valore (reindicizzazione) |
@@ -176,6 +178,7 @@ Le query da giudicare e le configurazioni confrontate sono in `PoolBuilderTest` 
 
 | Data | Branch | Modifica |
 |---|---|---|
+| 2026-11-19 | `dev/adducec` | Efficienza sull'indice completo con i due codec; `RealIndexPerformanceTest` sull'indice completo |
 | 2026-11-19 | `dev/adducec` | Giudizi di rilevanza (Claude Opus 5.5) e risultati della valutazione per argomento |
 | 2026-11-19 | `dev/adducec` | Valutazione per argomento: pool unito su 5 configurazioni (10 query, 135 righe), `RetrievalEvaluationTest` |
 | 2026-11-19 | `dev/adducec` | Ablation known-item: tutti i boost a 1, senza prossimità, senza categorie |

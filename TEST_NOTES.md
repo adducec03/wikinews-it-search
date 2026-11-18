@@ -31,7 +31,8 @@ l'efficacia dimostra che funziona *bene* e permette di giustificare le scelte co
 | `WikinewsApplicationTests` | — | memoria, 7 articoli | analyzer, boost, sintassi, filtri, ordinamento, paginazione, snippet, casi limite, latenza | `./mvnw test` |
 | `IrMetricsTest` | — | nessuno | le formule delle metriche su esempi calcolati a mano | `./mvnw test` |
 | `QueryFactorySettingsTest` | — | nessuno | i pesi di `SearchSettings` finiscono davvero nella query (boost, campo escluso, prossimità) | `./mvnw test` |
-| `RealIndexPerformanceTest` | — (da aggiungere `evaluation`) | quello dell'app | latenza di 21 query tipiche | `./mvnw test -Dtest=RealIndexPerformanceTest` |
+| `RealIndexPerformanceTest` | `evaluation` | completo | latenza di 21 query di tipi diversi (filtri, sintassi, ordinamento) | `./mvnw test -Dtest=RealIndexPerformanceTest -DexcludedGroups=none` |
+| `EfficiencyEvaluationTest` | `evaluation` | completo, costruito 2 volte | tempo di indicizzazione, dimensione dell'indice e latenza (media, mediana, p95) con `SimpleTextCodec` e con il codec di default | `./mvnw test -Dtest=EfficiencyEvaluationTest -DexcludedGroups=none` |
 | `PoolBuilderTest` | `evaluation` | completo | genera il pool da giudicare: 10 query, primi 10 di ogni configurazione, uniti | `./mvnw test -Dtest=PoolBuilderTest -DexcludedGroups=none` |
 | `RetrievalEvaluationTest` | `evaluation` | completo | P@10, Recall@100, MAP, MRR, nDCG@10 per ogni configurazione, con i giudizi di `qrels.tsv` (saltato se il file manca) | `./mvnw test -Dtest=RetrievalEvaluationTest -DexcludedGroups=none` |
 | `KnownItemEvaluationTest` | `evaluation` | completo | known-item: MRR, Success@1, Success@10 | `./mvnw test -Dtest=KnownItemEvaluationTest -DexcludedGroups=none` |
@@ -68,8 +69,8 @@ Da ricordare quando si commentano i numeri:
 
 | Metrica | Note |
 |---|---|
-| Tempo di indicizzazione, articoli al secondo | da misurare a fine `ImportService` |
-| Dimensione dell'indice su disco | confrontarla con il dump (590 MB) |
+| Tempo di indicizzazione, articoli al secondo | `EfficiencyEvaluationTest` |
+| Dimensione dell'indice su disco | `EfficiencyEvaluationTest`, confrontata con il dump (564 MB) |
 | Latenza: media, mediana, **p95**, max | p95 = "il 95% delle ricerche risponde entro X ms": rappresenta l'esperienza dell'utente meglio della media. Escludere le prime esecuzioni (riscaldamento della JVM) |
 | Throughput | ricerche al secondo su un thread |
 
@@ -143,7 +144,7 @@ riceve un solo valore e la conversione in numero fallisce).
 | BM25 (k1 = 1,2, b = 0,75) | TF-IDF (`ClassicSimilarity`); BM25 con b diversi | no (`searcher.setSimilarity`) | confronto classico della teoria; b regola quanto pesa la lunghezza del documento |
 | `ItalianAnalyzer` (stemming, stop word, elisioni) | `StandardAnalyzer` | **sì** | lo stemming dovrebbe aumentare la recall ("elezione" trova "elezioni") |
 | Stop word aggiuntive sulle categorie ("pubblicati", "articoli") | senza | sì | effetto sulle query che includono le categorie |
-| `SimpleTextCodec` | codec di default | sì | solo efficienza: tempo di indicizzazione, dimensione, latenza |
+| `SimpleTextCodec` | codec di default | sì | **fatto** (sezione 6): indice 9× più piccolo, ricerche 2–3× più veloci con il default |
 
 ### Tabella da riempire (una per metodo di valutazione)
 
@@ -161,6 +162,35 @@ riceve un solo valore e la conversione in numero fallisce).
 ---
 
 ## 6. Risultati raccolti finora
+
+### Efficienza sull'indice completo (2026-11-19)
+
+Macchina: Apple M1, 8 GB di RAM, OpenJDK 21. Dump: 12.261 righe, 564 MB. Indice: 12.213 documenti.
+Il tempo di indicizzazione comprende lettura del JSON, estrazione del testo dall'HTML (Jsoup), analisi e scrittura.
+Latenze: 28 query di `queries.tsv` come le esegue la UI (prima pagina, 10 risultati con snippet), 20 giri misurati
+dopo 5 di riscaldamento = 560 ricerche per codec. Due esecuzioni per controllare la variabilità.
+
+| Codec | Indicizzazione | Articoli/s | Dimensione indice | Latenza media | Mediana | p95 | Ricerche/s |
+|---|---|---|---|---|---|---|---|
+| `SimpleTextCodec` (in uso oggi) | 17,0 – 17,4 s | 703 – 720 | **342,8 MB** | 6,5 – 7,2 ms | 5,4 – 5,7 ms | 15,2 – 17,9 ms | 140 – 153 |
+| Codec di default | **12,3 – 12,6 s** | **975 – 996** | **37,5 MB** | **2,4 – 3,8 ms** | **2,1 – 2,2 ms** | **4,3 – 9,9 ms** | **265 – 417** |
+
+- **Il codec di default è nettamente migliore:** indice **9 volte più piccolo** (37,5 contro 342,8 MB, cioè il 7% del
+  dump contro il 61%), indicizzazione circa **1,4 volte più veloce**, ricerche **2–3 volte più veloci** (mediana 2,1
+  contro 5,5 ms). `SimpleTextCodec` scrive l'indice in formato testo leggibile: serve per il debug (L04), non per l'uso.
+  → **Raccomandazione: togliere `SimpleTextCodec` da `LuceneManager`** (codice dell'indicizzazione, da concordare).
+- Anche con `SimpleTextCodec` la ricerca è rapida per un utente (p95 sotto i 20 ms).
+- Le latenze variano tra un'esecuzione e l'altra (es. media 3,8 e poi 2,4 ms): per questo si riporta l'intervallo
+  e si guarda soprattutto la mediana, che risente meno dei casi isolati (pause del garbage collector).
+
+**Latenza per tipo di query** (`RealIndexPerformanceTest`, indice completo con `SimpleTextCodec`, 10 esecuzioni dopo
+la prima; media complessiva 9,6 ms, la più lenta 32,6 ms, 104 ricerche al secondo):
+- le più veloci: "tutti i documenti" (1,5 ms), "solo categoria" e "solo date" (4–5 ms), ordinamento per data (4,2 ms);
+- le più lente: `+ e -` (25,5 ms), "query lunga" (19,6 ms), "testo + date" (17,5 ms), frase esatta (15,9 ms):
+  più clausole da valutare, o posizioni delle parole da confrontare;
+- **la prima esecuzione** è molto più lenta: 4 s per la primissima query (avvio della JVM e delle cache) e 1,7 s per
+  la prima query senza risultati (inizializzazione del correttore dei suggerimenti); poi rispettivamente 10,5 e 7,2 ms.
+- La tabella delle latenze nel `README.MD` veniva da un indice di 100 articoli: va sostituita con questi numeri.
 
 ### Known-item (configurazione attuale, 500 articoli, seme 42, primi 100 risultati)
 
@@ -293,11 +323,11 @@ Osservazioni sul known-item:
 
 ## 7. Attenzione (errori facili da fare)
 
-- **Indice ridotto:** `RealIndexPerformanceTest` è un `@SpringBootTest` e usa `wikinews.data.maxArticle=99`,
-  quindi misura un indice di 100 articoli. Anche la tabella delle latenze nel `README.MD` viene da lì.
-  Per numeri validi va avviato con l'indice completo.
-- **Latenze e `SimpleTextCodec`:** l'indice è in formato testuale (solo per debug); le latenze misurate
-  oggi sono peggiori di quelle con il codec di default. Dichiararlo o rimisurare dopo il cambio.
+- **Indice ridotto (risolto):** `RealIndexPerformanceTest` usava `maxArticle=99`, cioè 100 articoli; ora usa l'indice
+  completo. La tabella delle latenze nel `README.MD` viene però ancora dalla vecchia versione: va aggiornata.
+- **Latenze e `SimpleTextCodec`:** l'applicazione usa il codec testuale (solo per debug); le latenze con il codec
+  di default sono 2–3 volte migliori (sezione 6). Dichiararlo nella relazione.
+- **Variabilità delle misure di tempo:** ripetere le misure almeno due volte e riportare intervalli o mediane.
 - **Riscaldamento della JVM:** la prima query è molto più lenta delle successive (compilazione JIT, cache).
   Escluderla dalle medie, come fa già il test 13.
 - **Circolarità delle categorie:** se si valuta con le categorie, il campo `categories` non deve essere cercato.

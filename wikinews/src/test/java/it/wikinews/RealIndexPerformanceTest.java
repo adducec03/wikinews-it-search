@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,8 +26,17 @@ import it.wikinews.lucene.search.SearchService;
  * In fondo: numero di ricerche, tempo medio complessivo, la più lenta e ricerche al secondo.
  * Si sono presi come esempi parole del dataset. In particolare si vede come in OR e AND si 
  * siano utilizzate le stesse, di cui in una caso si sa che non ci sono risultati
+ *
+ * <p>Usa l'indice COMPLETO (tutto il dump), costruito in una cartella separata
+ * (target/evaluation-index) per non toccare l'indice di sviluppo. Ha il tag "evaluation":
+ * non parte con "./mvnw test". Lancio:
+ * ./mvnw test -Dtest=RealIndexPerformanceTest -DexcludedGroups=none
  */
-@SpringBootTest
+@Tag("evaluation")
+@SpringBootTest(properties = {
+        "wikinews.data.maxArticle=20000",
+        "wikinews.index.path=target/evaluation-index"
+})
 class RealIndexPerformanceTest {
 
     private static final int RUNS = 10;
