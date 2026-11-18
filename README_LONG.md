@@ -121,10 +121,11 @@ Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già sc
 - [x] Operatore AND/OR configurabile (`wikinews.search.and-operator`)
 - [ ] Confrontare, una scelta alla volta:
   - [x] boost del titolo 3 contro 1 (risultati in `TEST_NOTES.md`)
-  - [ ] boost dei campi 3/2/1/1 contro tutti a 1
+  - [x] boost dei campi 3/2/1/1 contro tutti a 1 (known-item)
   - [x] AND contro OR con il known-item (risultati in `TEST_NOTES.md`; da confermare per argomento)
-  - [ ] prossimità attiva / disattivata / slop diversi
-  - [ ] categorie incluse o escluse dalla ricerca libera
+  - [x] prossimità attiva / disattivata (known-item: effetto nullo, il metodo non la misura bene)
+  - [x] categorie incluse o escluse dalla ricerca libera (known-item: effetto nullo)
+  - [ ] ripetere boost, prossimità e categorie con la valutazione per argomento (giudizi manuali)
   - [ ] BM25 contro TF-IDF (`ClassicSimilarity`)
   - [ ] `ItalianAnalyzer` contro `StandardAnalyzer` (serve un secondo indice)
   - [ ] `SimpleTextCodec` contro codec di default (tempo e dimensione dell'indice)
@@ -165,6 +166,7 @@ Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già sc
 
 | Data | Branch | Modifica |
 |---|---|---|
+| 2026-11-19 | `dev/adducec` | Ablation known-item: tutti i boost a 1, senza prossimità, senza categorie |
 | 2026-11-19 | `dev/adducec` | Operatore AND/OR configurabile, ablation AND contro OR |
 | 2026-11-19 | `dev/adducec` | Boost configurabili (`SearchSettings`), `QueryFactorySettingsTest`, prima ablation sul boost del titolo |
 | 2026-11-18 | `dev/adducec` | Creato `TEST_NOTES.md` (strategia, metriche, piano di ablation) |

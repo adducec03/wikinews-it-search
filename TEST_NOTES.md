@@ -121,6 +121,8 @@ disattivata. Per provare una variante senza toccare il codice basta passarla da 
 
 Il test stampa sempre la riga `Pesi: ...` con la configurazione usata: copiarla insieme ai risultati.
 L'operatore si cambia con `-Dwikinews.search.and-operator=false` (OR).
+Più proprietà si passano come argomenti `-D` separati (non dentro un'unica stringa, altrimenti Spring
+riceve un solo valore e la conversione in numero fallisce).
 
 ### Scelte da verificare
 
@@ -142,10 +144,10 @@ L'operatore si cambia con `-Dwikinews.search.and-operator=false` (OR).
 |---|---|---|---|---|---|---|---|
 | Completa (attuale) | 0,959 | 0,830 | 0,893 | | | | |
 | Titolo con boost 1 invece di 3 | 0,920 | 0,847 | 0,895 | | | | |
-| − boost dei campi (tutti a 1) | | | | | | | |
+| − boost dei campi (tutti a 1) | 0,943 | 0,834 | 0,893 | | | | |
 | OR invece di AND | 0,924 | 0,585 | 0,786 | | | | |
-| − prossimità | | | | | | | |
-| − categorie nella ricerca | | | | | | | |
+| − prossimità | 0,957 | 0,830 | 0,893 | | | | |
+| − categorie nella ricerca | 0,959 | 0,827 | 0,890 | | | | |
 | TF-IDF invece di BM25 | | | | | | | |
 | `StandardAnalyzer` | | | | | | | |
 
@@ -188,6 +190,29 @@ cercato, quindi l'articolo le contiene *tutte* e AND non lo esclude mai. Nelle q
 parole che l'articolo non contiene (es. q13 "Mostra del **cinema** di Venezia": con AND trova solo 8 articoli,
 perché molti scrivono "arte cinematografica"). Il vantaggio di AND va quindi confermato con le categorie
 o con i giudizi manuali, guardando anche la Recall.
+
+### Ablation: boost, prossimità e categorie (known-item, 2026-11-19)
+
+| Configurazione | MRR titolo | Success@1 titolo | MRR testo | Success@1 testo |
+|---|---|---|---|---|
+| Completa (titolo 3, abstract 2, prossimità, categorie) | **0,959** | **0,938** | 0,830 | 0,795 |
+| Titolo 1 (abstract 2) | 0,920 | 0,880 | **0,847** | **0,818** |
+| Tutti i boost a 1 | 0,943 | 0,916 | 0,834 | 0,802 |
+| Senza prossimità | 0,957 | 0,934 | 0,830 | 0,795 |
+| Senza categorie nella ricerca | 0,959 | 0,936 | 0,827 | 0,790 |
+
+- **Boost dei campi:** la configurazione attuale è la migliore per le query dal titolo; per quelle dal testo le
+  differenze sono piccole (±0,02). Curioso: "titolo 1, abstract 2" è peggio di "tutti a 1" sul titolo (0,920 contro
+  0,943), perché favorire l'abstract rispetto al titolo sposta il peso dove le parole del titolo non sono.
+  Conta il **rapporto** tra i boost, non il singolo valore.
+- **Prossimità:** effetto quasi nullo (−0,002). Il known-item non è adatto a misurarla: nelle query dal testo le
+  4 parole sono scelte a caso e quasi mai vicine; nelle query dal titolo AND basta già a mettere l'articolo in alto.
+  Va valutata con query di più parole che formano un concetto ("incidente ferroviario") nei giudizi manuali.
+- **Categorie nella ricerca:** effetto quasi nullo (+0,003 sul testo). Non danneggiano; il loro ruolo vero è per le
+  query per argomento ("sport", "politica"), che il known-item non contiene.
+
+Conclusione provvisoria: con il known-item **solo l'operatore AND/OR ha un effetto netto**; boost, prossimità e
+categorie spostano i valori di pochi millesimi o centesimi. Per decidere su questi serve la valutazione per argomento.
 
 Osservazioni sul known-item:
 - 71 articoli hanno un abstract troppo corto per la variante dal testo.
