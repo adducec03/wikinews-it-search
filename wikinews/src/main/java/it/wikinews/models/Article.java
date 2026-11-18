@@ -75,12 +75,19 @@ public class Article {
     public String getCategoriesAsString() {
         StringBuilder categoriesString = new StringBuilder();
         for (Category category : categories) {
+            if (category.getName() == null) {
+                continue;
+            }
             categoriesString.append(category.getName()).append(", ");
         }
         return categoriesString.toString();
     }
 
     public void setCategories(List<Category> categories) {
+        // "categories": null nel JSON -> l'articolo resta senza categorie
+        if (categories == null) {
+            return;
+        }
         for (Category category : categories) {
             if (category.getName() != null) {
                 category.setName(category.getName().replaceAll("(?i)^Categoria\\s*:\\s*", ""));
