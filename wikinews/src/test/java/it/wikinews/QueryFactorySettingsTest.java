@@ -1,5 +1,6 @@
 package it.wikinews;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -84,6 +85,36 @@ class QueryFactorySettingsTest {
         String query = buildQuery(settings, "elezioni comunali");
 
         assertTrue(query.contains("~10"), query);
+    }
+
+    @Test
+    @DisplayName("Operatore AND (default) e OR")
+    void andOrOperator() throws Exception {
+        // senza prossimità la query contiene solo la parte di testo.
+        // Con AND ogni parola diventa una clausola obbligatoria, scritta "+(...)":
+        // 1 per la parte di testo + 1 per "elezioni" + 1 per "comunali" = 3
+        SearchSettings andSettings = new SearchSettings();
+        andSettings.setProximityBoost(0f);
+        String andQuery = buildQuery(andSettings, "elezioni comunali");
+        assertEquals(3, countOccurrences(andQuery, "+("), andQuery);
+
+        // con OR le parole sono facoltative: resta solo "+(" della parte di testo
+        SearchSettings orSettings = new SearchSettings();
+        orSettings.setProximityBoost(0f);
+        orSettings.setAndOperator(false);
+        String orQuery = buildQuery(orSettings, "elezioni comunali");
+        assertEquals(1, countOccurrences(orQuery, "+("), orQuery);
+    }
+
+    /** Quante volte "part" compare in "text". */
+    private static int countOccurrences(String text, String part) {
+        int count = 0;
+        int index = text.indexOf(part);
+        while (index >= 0) {
+            count++;
+            index = text.indexOf(part, index + part.length());
+        }
+        return count;
     }
 
     @Test

@@ -118,11 +118,11 @@ Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già sc
 
 ### 2. Ablation study e verifica delle scelte
 - [x] Boost dei campi e prossimità configurabili (`SearchSettings`, proprietà `wikinews.search.*`), con `QueryFactorySettingsTest`
-- [ ] Rendere configurabile anche l'operatore AND/OR
+- [x] Operatore AND/OR configurabile (`wikinews.search.and-operator`)
 - [ ] Confrontare, una scelta alla volta:
   - [x] boost del titolo 3 contro 1 (risultati in `TEST_NOTES.md`)
   - [ ] boost dei campi 3/2/1/1 contro tutti a 1
-  - [ ] AND contro OR
+  - [x] AND contro OR con il known-item (risultati in `TEST_NOTES.md`; da confermare per argomento)
   - [ ] prossimità attiva / disattivata / slop diversi
   - [ ] categorie incluse o escluse dalla ricerca libera
   - [ ] BM25 contro TF-IDF (`ClassicSimilarity`)
@@ -165,6 +165,7 @@ Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già sc
 
 | Data | Branch | Modifica |
 |---|---|---|
+| 2026-11-19 | `dev/adducec` | Operatore AND/OR configurabile, ablation AND contro OR |
 | 2026-11-19 | `dev/adducec` | Boost configurabili (`SearchSettings`), `QueryFactorySettingsTest`, prima ablation sul boost del titolo |
 | 2026-11-18 | `dev/adducec` | Creato `TEST_NOTES.md` (strategia, metriche, piano di ablation) |
 | 2026-11-18 | `dev/adducec` | Valutazione automatica known-item (`KnownItemEvaluationTest`) |

@@ -70,7 +70,12 @@ public class QueryFactory {
 
         MultiFieldQueryParser parser = new MultiFieldQueryParser(fields, analyzer, boosts);
 
-        parser.setDefaultOperator(QueryParser.Operator.AND);
+        // operatore tra le parole della query: AND = tutte obbligatorie, OR = ne basta una
+        if (settings.isAndOperator()) {
+            parser.setDefaultOperator(QueryParser.Operator.AND);
+        } else {
+            parser.setDefaultOperator(QueryParser.Operator.OR);
+        }
 
         return parser.parse(text);
     }

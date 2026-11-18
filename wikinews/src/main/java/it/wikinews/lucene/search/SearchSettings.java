@@ -13,11 +13,22 @@ import org.springframework.stereotype.Component;
  * - nei test, con i metodi set... (utile per l'ablation study)
  *
  * I boost cambiano solo l'ORDINE dei risultati, non quali articoli vengono trovati.
- * Eccezione: un campo con boost 0 viene escluso dalla ricerca.
+ * Eccezioni: un campo con boost 0 viene escluso dalla ricerca, e l'operatore AND/OR
+ * decide quali articoli vengono trovati.
  */
 @Component
 @ConfigurationProperties(prefix = "wikinews.search")
 public class SearchSettings {
+
+    // ---- operatore tra le parole della query ----
+
+    /**
+     * true  = AND: ogni parola deve comparire (in almeno un campo). Risultati più precisi, ma meno.
+     * false = OR:  basta una parola. Più risultati; quelli con più parole hanno punteggio più alto.
+     * L'utente può comunque scrivere AND / OR esplicitamente nella query.
+     * NB: a differenza dei boost, questa scelta cambia QUALI articoli vengono trovati.
+     */
+    private boolean andOperator = true;
 
     // ---- boost dei campi: quanto vale una parola trovata in quel campo ----
 
@@ -44,6 +55,14 @@ public class SearchSettings {
 
     /** Quanto vale il bonus quando le parole sono vicine. 0 = bonus di prossimità disattivato. */
     private float proximityBoost = 2f;
+
+    public boolean isAndOperator() {
+        return andOperator;
+    }
+
+    public void setAndOperator(boolean andOperator) {
+        this.andOperator = andOperator;
+    }
 
     public float getNameBoost() {
         return nameBoost;
@@ -96,7 +115,12 @@ public class SearchSettings {
     /** Descrizione leggibile, da stampare insieme ai risultati della valutazione. */
     @Override
     public String toString() {
-        return "titolo=" + nameBoost
+        String operator = "OR";
+        if (andOperator) {
+            operator = "AND";
+        }
+        return "operatore=" + operator
+                + ", titolo=" + nameBoost
                 + ", abstract=" + abstractBoost
                 + ", contenuto=" + contentBoost
                 + ", categorie=" + categoriesBoost

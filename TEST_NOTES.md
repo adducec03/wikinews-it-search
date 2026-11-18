@@ -120,7 +120,7 @@ disattivata. Per provare una variante senza toccare il codice basta passarla da 
 ```
 
 Il test stampa sempre la riga `Pesi: ...` con la configurazione usata: copiarla insieme ai risultati.
-L'operatore AND/OR non è ancora configurabile.
+L'operatore si cambia con `-Dwikinews.search.and-operator=false` (OR).
 
 ### Scelte da verificare
 
@@ -143,7 +143,7 @@ L'operatore AND/OR non è ancora configurabile.
 | Completa (attuale) | 0,959 | 0,830 | 0,893 | | | | |
 | Titolo con boost 1 invece di 3 | 0,920 | 0,847 | 0,895 | | | | |
 | − boost dei campi (tutti a 1) | | | | | | | |
-| OR invece di AND | | | | | | | |
+| OR invece di AND | 0,924 | 0,585 | 0,786 | | | | |
 | − prossimità | | | | | | | |
 | − categorie nella ricerca | | | | | | | |
 | TF-IDF invece di BM25 | | | | | | | |
@@ -172,6 +172,23 @@ parole del testo (−0,02 MRR): premiando il titolo, gli articoli che hanno *nel
 superano l'articolo cercato, che le ha solo nel testo. È il compromesso atteso; serve la valutazione
 per argomento (categorie o giudizi manuali) per decidere il valore finale.
 
+### Ablation: operatore AND / OR (known-item, 2026-11-19)
+
+| Operatore | MRR titolo | Success@1 titolo | MRR testo | Success@1 testo | Success@10 testo | Non trovati (testo) |
+|---|---|---|---|---|---|---|
+| AND (attuale) | **0,959** | **0,938** | **0,830** | **0,795** | **0,893** | 20 |
+| OR | 0,924 | 0,906 | 0,585 | 0,480 | 0,786 | 28 |
+
+Con OR basta una parola per essere trovati: per le query dal testo (4 parole generiche) molti articoli
+che contengono *una sola* parola, ma nel titolo (boost 3), superano l'articolo cercato. L'effetto è molto
+più grande di quello del boost del titolo (−0,245 MRR contro ±0,04).
+
+**Attenzione, il known-item favorisce AND per costruzione:** le parole della query sono prese dall'articolo
+cercato, quindi l'articolo le contiene *tutte* e AND non lo esclude mai. Nelle query reali l'utente può usare
+parole che l'articolo non contiene (es. q13 "Mostra del **cinema** di Venezia": con AND trova solo 8 articoli,
+perché molti scrivono "arte cinematografica"). Il vantaggio di AND va quindi confermato con le categorie
+o con i giudizi manuali, guardando anche la Recall.
+
 Osservazioni sul known-item:
 - 71 articoli hanno un abstract troppo corto per la variante dal testo.
 - Quasi tutti i non trovati sono cronache sportive con lo stesso schema ("Calcio, Serie A 2011-2012: 35ª giornata"):
@@ -190,6 +207,8 @@ Osservazioni sul known-item:
   Escluderla dalle medie, come fa già il test 13.
 - **Circolarità delle categorie:** se si valuta con le categorie, il campo `categories` non deve essere cercato.
 - **Bias del titolo nel known-item:** riportare sempre entrambe le varianti (titolo e testo).
+- **Bias di AND nel known-item:** l'articolo cercato contiene sempre tutte le parole della query, quindi
+  il known-item non può mostrare il costo di AND (articoli rilevanti persi). Serve una valutazione per argomento.
 - **Confronti equi:** stesse query, stesso seme, stesso indice per tutte le configurazioni.
 - **Pool rigenerato = giudizi persi:** il pool va rigenerato solo se cambiano le query.
 - **4 test in errore:** in `WikinewsApplicationTests` `SearchService` è creato con `null` al posto di
