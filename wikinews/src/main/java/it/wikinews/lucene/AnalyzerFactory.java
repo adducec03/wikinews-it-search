@@ -16,7 +16,10 @@ import it.wikinews.lucene.index.IndexFields;
 
 public class AnalyzerFactory {
     public static Analyzer createAnalyzer() {
+        //Analyzer standard per i campi senza analyzer specificato
         Analyzer italianAnalyzer = new ItalianAnalyzer();
+
+        //Creazione dell'analyzer per il campo CATEGORIES
         CharArraySet stopwords = new CharArraySet(ItalianAnalyzer.getDefaultStopSet(), true);
         stopwords.add("pubblicati");
         stopwords.add("articoli");
