@@ -63,10 +63,13 @@ public class SearchService {
             String suggestedQuery = null;
             Query suggestedLuceneQuery = null;
             if (top.totalHits.value == 0 && hasText) {
-                suggestedQuery = querySuggestionService.suggest(text,searcher.getIndexReader());
-                if (suggestedQuery != null) {
-                    suggestedLuceneQuery = QueryFactory.build(analyzer, suggestedQuery, category, from, to);
-                    top = articleSearcher.search(searcher, suggestedLuceneQuery, upTo, sortByDate);
+                QuerySuggestionResult result = querySuggestionService.suggest(text, category, from, to,searcher);
+                if (result != null) {
+                    suggestedQuery = result.text();
+                    suggestedLuceneQuery = result.query();
+                    if (suggestedLuceneQuery != null) {
+                        top = articleSearcher.search(searcher, suggestedLuceneQuery, upTo, useDateSort);
+                    }
                 }
             }
 

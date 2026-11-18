@@ -1,0 +1,1 @@
+cd wikinews && ./mvnw.cmd spring-boot:run 
