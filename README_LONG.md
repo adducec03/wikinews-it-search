@@ -74,16 +74,29 @@ Ultimo aggiornamento: 2026-11-18
 ## Da fare
 
 ### 1. Metriche di valutazione
-- [ ] Scrivere 20–30 query di tipi diversi (nomi propri, argomenti, frasi, refusi, filtri) in
-      `src/test/resources/evaluation/queries.tsv` (`id_query`, `testo`)
-- [ ] `PoolBuilderTest`: per ogni query scrive i primi 20 risultati in `target/pool.tsv` da giudicare a mano
-- [ ] Giudizi di rilevanza (0/1/2) in `src/test/resources/evaluation/qrels.tsv` (`id_query`, `id_articolo`, `rilevanza`)
-      — usare l'`identifier` dell'articolo, non il docId di Lucene
+- [x] 28 query con bisogno informativo in `src/test/resources/evaluation/queries.tsv` (`qid`, `query`, `need`)
+- [x] `PoolBuilderTest`: per ogni query scrive i primi 20 risultati in `target/evaluation/pool.tsv` (530 righe)
+- [ ] **Giudicare il pool**: colonna `relevance` con 0/1/2 leggendo il `need` della query, poi salvare il file come
+      `src/test/resources/evaluation/qrels.tsv` (vedi [Come giudicare il pool](#come-giudicare-il-pool))
 - [ ] `RetrievalEvaluationTest`: calcola P@10, MRR, MAP, nDCG@10 sull'indice completo e salva la tabella
-- [ ] Tag JUnit `evaluation` per i test sull'indice reale, esclusi dal normale `./mvnw test`
+- [x] Tag JUnit `evaluation` per i test sull'indice reale, esclusi dal normale `./mvnw test`
+- [ ] Mettere `@Tag("evaluation")` anche su `RealIndexPerformanceTest`
+- [ ] Ampliare il pool con i risultati delle varianti dell'ablation (oggi viene da una sola configurazione)
 - [ ] Efficienza dell'indicizzazione: articoli al secondo e dimensione dell'indice su disco
 - [ ] Copertura: test automatico righe del dump = articoli indicizzati, documenti = id distinti
 - [ ] Accuratezza dei suggerimenti: coppie refuso → correzione attesa, più query corrette che non devono avere suggerimenti
+
+#### Come giudicare il pool
+1. Generare il pool (circa 30 secondi, indicizza tutto il dump in `target/evaluation-index`):
+   `./mvnw test -Dtest=PoolBuilderTest -DexcludedGroups=none`
+2. Aprire `wikinews/target/evaluation/pool.tsv` (va bene anche un foglio di calcolo, salvando in TSV).
+3. Per ogni riga leggere il titolo (e l'articolo dall'`url`, se serve) e scrivere in `relevance`:
+   **0** = non risponde al bisogno, **1** = in parte, **2** = risponde pienamente.
+   Il criterio è il `need` della query in `queries.tsv`, non le parole della query.
+4. Dividere le query fra noi (per esempio q01–q10, q11–q19, q20–q28) e giudicare in modo indipendente.
+5. Salvare il risultato come `wikinews/src/test/resources/evaluation/qrels.tsv`, senza cambiare le colonne.
+
+Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già scritti andrebbero persi.
 
 ### 2. Ablation study e verifica delle scelte
 - [ ] Rendere configurabili boost, AND/OR e prossimità (oggi costanti in `QueryFactory`), per provarli senza modificare il codice
@@ -132,6 +145,7 @@ Ultimo aggiornamento: 2026-11-18
 
 | Data | Branch | Modifica |
 |---|---|---|
+| 2026-11-18 | `dev/adducec` | 28 query di valutazione, `PoolBuilderTest`, tag `evaluation` escluso di default nel `pom.xml` |
 | 2026-11-18 | `dev/adducec` | `id` in `SearchResult`; `IrMetrics` e `IrMetricsTest`; creato questo file |
 | 2026-11-18 | `dev/adducec` | Indicizzazione: campi mancanti e duplicati (commit `fe1b11d`) |
 | — | `dev/hb-suggestions` | Suggerimenti "Forse cercavi…" |

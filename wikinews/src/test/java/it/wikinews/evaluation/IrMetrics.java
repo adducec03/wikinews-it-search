@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Metriche di Information Retrieval per valutare la qualità dei risultati (L02, cap. 14).
+ * Metriche di Information Retrieval per valutare la qualità dei risultati
  *
  * Tutti i metodi ricevono:
  * - ranking:  gli id degli articoli restituiti dal motore, nell'ordine in cui li mostra
