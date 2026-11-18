@@ -1,0 +1,6 @@
+- [ ] aggiungere metriche per validare il sistema oltre al tempo di indicizzazione
+- [ ] aggiornare front end
+- [ ] aggiungere altri modi per testare il sistema (es ablation study)
+- [ ] creare un readme decente (come funzione, com'è stato testato, come installarlo)
+- [ ] risolvere problema di indicizzazione articoli con campi vuoti
+- [ ] verificare se le scelte fatte sono utili o vanno cambiate
