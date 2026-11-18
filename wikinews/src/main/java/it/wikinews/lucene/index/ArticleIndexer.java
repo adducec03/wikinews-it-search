@@ -47,8 +47,8 @@ public class ArticleIndexer {
         document.add(new StringField(IndexFields.ID, article.getId(), Field.Store.YES));
         
         String suggestTerms = String.join(" ", article.getName(), 
-            article.getAbstractContent() != null
-                ? article.getAbstractContent()
+            article.getContent() != null
+                ? article.getContent()
                 : ""
         );
         document.add(new TextField(IndexFields.SUGGEST_TERMS, suggestTerms, Field.Store.NO));
