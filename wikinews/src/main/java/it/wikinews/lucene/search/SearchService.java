@@ -67,7 +67,9 @@ public class SearchService {
                 if (result != null) {
                     suggestedQuery = result.text();
                     suggestedLuceneQuery = result.query();
-                    top = articleSearcher.search(searcher, suggestedLuceneQuery, upTo, useDateSort);
+                    if (suggestedLuceneQuery != null) {
+                        top = articleSearcher.search(searcher, suggestedLuceneQuery, upTo, useDateSort);
+                    }
                 }
             }
 
