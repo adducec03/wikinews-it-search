@@ -32,7 +32,8 @@ l'efficacia dimostra che funziona *bene* e permette di giustificare le scelte co
 | `IrMetricsTest` | — | nessuno | le formule delle metriche su esempi calcolati a mano | `./mvnw test` |
 | `QueryFactorySettingsTest` | — | nessuno | i pesi di `SearchSettings` finiscono davvero nella query (boost, campo escluso, prossimità) | `./mvnw test` |
 | `RealIndexPerformanceTest` | — (da aggiungere `evaluation`) | quello dell'app | latenza di 21 query tipiche | `./mvnw test -Dtest=RealIndexPerformanceTest` |
-| `PoolBuilderTest` | `evaluation` | completo | genera il pool da giudicare a mano | `./mvnw test -Dtest=PoolBuilderTest -DexcludedGroups=none` |
+| `PoolBuilderTest` | `evaluation` | completo | genera il pool da giudicare: 10 query, primi 10 di ogni configurazione, uniti | `./mvnw test -Dtest=PoolBuilderTest -DexcludedGroups=none` |
+| `RetrievalEvaluationTest` | `evaluation` | completo | P@10, Recall@100, MAP, MRR, nDCG@10 per ogni configurazione, con i giudizi di `qrels.tsv` (saltato se il file manca) | `./mvnw test -Dtest=RetrievalEvaluationTest -DexcludedGroups=none` |
 | `KnownItemEvaluationTest` | `evaluation` | completo | known-item: MRR, Success@1, Success@10 | `./mvnw test -Dtest=KnownItemEvaluationTest -DexcludedGroups=none` |
 
 I test con tag `evaluation` sono esclusi dal normale `./mvnw test` (configurato nel `pom.xml`) perché
@@ -89,15 +90,21 @@ Da ricordare quando si commentano i numeri:
 |---|---|---|---|
 | **Known-item** (fatto) | un articolo cerca se stesso; query dal titolo o da 4 parole del testo non presenti nel titolo | automatico, centinaia di query, ripetibile (seme fisso) | misura il *ritrovare un articolo*, non il *trovare tutto su un argomento*. Le query dal titolo favoriscono il boost del titolo: per questo c'è anche la variante dal testo |
 | **Categorie** (da fare) | query = nome di una categoria; rilevanti = articoli con quella categoria | automatico, giudizi per argomento | **va escluso il campo `categories` dalla ricerca**, altrimenti il sistema trova la categoria "barando". Le categorie sono incomplete: la precisione viene sottostimata. Buono per *confrontare* configurazioni |
-| **Giudizi manuali** (pool pronto) | 28 query con bisogno informativo (`need`), primi 20 risultati, voto 0/1/2 | è il riferimento "vero" | costoso (530 giudizi). Si può ridurre a ~10 query × 10 risultati per **validare** i metodi automatici |
+| **Giudizi manuali** (pool pronto) | 10 delle 28 query, con bisogno informativo (`need`); primi 10 risultati di ognuna delle 5 configurazioni, uniti; voto 0/1/2 | è il riferimento "vero"; misura anche la Recall, che il known-item non vede | 135 giudizi a mano |
 
 Regole per i giudizi manuali:
 - Si giudica rispetto al **`need`** in `queries.tsv`, non alle parole della query.
 - **0** = non risponde al bisogno, **1** = in parte, **2** = risponde pienamente.
 - Giudicare senza guardare posizione e punteggio, per non farsi influenzare dal motore.
 - Se possibile, far giudicare alcune query da due persone e misurare quanto sono d'accordo (accordo tra giudici).
-- Il pool viene da **una sola configurazione**: un articolo rilevante che il motore non mette tra i primi 20
-  non viene mai giudicato. Per l'ablation conviene allargare il pool con i risultati delle varianti (pooling vero).
+- Il pool unisce i primi 10 risultati di **tutte** le configurazioni confrontate (`AblationConfigurations`):
+  così un articolo trovato solo con OR, o solo senza boost, viene comunque giudicato e il confronto è equo.
+  Gli articoli mai giudicati contano come non rilevanti (regola standard del pooling): la Recall è quindi
+  relativa ai rilevanti *conosciuti*, non a tutti quelli del dump.
+- Le righe del pool sono ordinate per titolo, non per posizione, per non influenzare chi giudica.
+- Le 10 query sono scelte per le domande aperte dell'ablation: concetti di più parole (prossimità: q01, q23, q25),
+  query che con AND trovano pochi articoli (q04, q13, q20), argomenti ampi (q02, q10, q27), una persona (q08).
+  Sono poche: le differenze piccole tra configurazioni (pochi centesimi) non vanno considerate significative.
 
 ---
 
@@ -142,12 +149,12 @@ riceve un solo valore e la conversione in numero fallisce).
 
 | Configurazione | MRR (titolo) | MRR (testo) | Success@10 (testo) | P@10 | MAP | nDCG@10 | Latenza media |
 |---|---|---|---|---|---|---|---|
-| Completa (attuale) | 0,959 | 0,830 | 0,893 | | | | |
+| Completa (attuale) | 0,959 | 0,830 | 0,893 | 0,920 | 0,920 | 0,919 | |
 | Titolo con boost 1 invece di 3 | 0,920 | 0,847 | 0,895 | | | | |
-| − boost dei campi (tutti a 1) | 0,943 | 0,834 | 0,893 | | | | |
-| OR invece di AND | 0,924 | 0,585 | 0,786 | | | | |
-| − prossimità | 0,957 | 0,830 | 0,893 | | | | |
-| − categorie nella ricerca | 0,959 | 0,827 | 0,890 | | | | |
+| − boost dei campi (tutti a 1) | 0,943 | 0,834 | 0,893 | 0,940 | 0,913 | 0,918 | |
+| OR invece di AND | 0,924 | 0,585 | 0,786 | 0,920 | 0,923 | 0,929 | |
+| − prossimità | 0,957 | 0,830 | 0,893 | 0,910 | 0,924 | 0,887 | |
+| − categorie nella ricerca | 0,959 | 0,827 | 0,890 | 0,920 | 0,902 | 0,918 | |
 | TF-IDF invece di BM25 | | | | | | | |
 | `StandardAnalyzer` | | | | | | | |
 
@@ -212,7 +219,70 @@ o con i giudizi manuali, guardando anche la Recall.
   query per argomento ("sport", "politica"), che il known-item non contiene.
 
 Conclusione provvisoria: con il known-item **solo l'operatore AND/OR ha un effetto netto**; boost, prossimità e
-categorie spostano i valori di pochi millesimi o centesimi. Per decidere su questi serve la valutazione per argomento.
+categorie spostano i valori di pochi millesimi o centesimi. Per decidere su questi serve la valutazione per argomento
+(fatta: vedi sotto — la prossimità risulta utile, AND ha un costo localizzato).
+
+### Valutazione per argomento con giudizi di rilevanza (2026-11-19)
+
+**Metodo dei giudizi (da riportare nella relazione).**
+I giudizi di rilevanza sono stati assegnati dal modello **Claude Opus 5.5** (Anthropic, identificativo
+`claude-opus-5-5`, usato tramite Claude Code) il **19/11/2026**. Per ogni coppia query–articolo il modello ha letto
+il bisogno informativo (`need` in `queries.tsv`), il titolo e l'inizio dell'articolo (abstract, o i primi ~260 caratteri
+del testo se l'abstract manca), e ha assegnato un voto con la scala della sezione 4:
+**2** = riguarda direttamente il bisogno, **1** = lo tocca in parte (pagine indice "Speciale", conseguenze indirette,
+anteprime e curiosità), **0** = fuori tema. Non è stata usata nessuna regola automatica: ogni voto è stato dato
+leggendo la singola riga.
+
+- Pool: 10 query × primi 10 risultati di ognuna delle 5 configurazioni, uniti → **135 coppie**.
+- Distribuzione dei voti: **99 × 2, 22 × 1, 14 × 0**.
+- File di riferimento (versionato): `wikinews/src/test/resources/evaluation/qrels.tsv`.
+  Un LLM non darebbe esattamente gli stessi voti a una seconda esecuzione: il dato riproducibile è il file.
+- Verifica umana: **da fare** — vedi "Controllo dei giudizi" sotto.
+
+Testo pronto per la relazione:
+> I giudizi di rilevanza (135 coppie query–articolo, scala 0/1/2) sono stati assegnati dal modello Claude Opus 5.5
+> (Anthropic) il 19/11/2026, sulla base del bisogno informativo di ciascuna query e del titolo e dell'inizio di ogni
+> articolo. Un campione di 20 giudizi è stato verificato manualmente, con un accordo dell'X%.
+
+**Risultati** (`./mvnw test -Dtest=RetrievalEvaluationTest -DexcludedGroups=none`):
+
+| Configurazione | P@10 | Recall@100 | MAP | MRR | nDCG@10 |
+|---|---|---|---|---|---|
+| Attuale (AND, titolo 3, abstract 2, prossimità, categorie) | 0,920 | 0,977 | 0,920 | 1,000 | 0,919 |
+| OR invece di AND | 0,920 | **1,000** | 0,923 | 1,000 | **0,929** |
+| Senza prossimità | 0,910 | 0,977 | 0,924 | 1,000 | 0,887 |
+| Boost tutti a 1 | **0,940** | 0,971 | 0,913 | 1,000 | 0,918 |
+| Senza categorie | 0,920 | 0,977 | 0,902 | 1,000 | 0,918 |
+
+**Cosa dicono:**
+- **Prossimità — utile (opposto del known-item).** Togliendola nDCG@10 scende da 0,919 a 0,887. L'effetto è
+  concentrato dove le parole formano un concetto: q10 "Palio di Siena" nDCG 0,709 → 0,477, q23 "incidente
+  ferroviario" 1,000 → 0,887. Il known-item non lo vedeva perché usa parole scelte a caso. Esempio da citare.
+- **AND contro OR — il costo di AND esiste ma è localizzato.** Su 9 query su 10 i risultati sono identici;
+  su q20 "guerra Ucraina Russia" AND perde 3 articoli rilevanti su 13 (Recall@100 0,769 contro 1,000; nDCG 0,748
+  contro 0,846), perché non contengono tutte e tre le parole. È il costo che il known-item non poteva misurare.
+  Insieme al known-item (dove OR crolla: MRR 0,830 → 0,585) la conclusione è: AND è la scelta migliore in generale,
+  ma penalizza le query con parole alternative. Una via di mezzo da citare come sviluppo futuro: "minimum should match"
+  (es. almeno 2 parole su 3).
+- **Boost dei campi — differenze minime** (P@10 +0,02 con tutti a 1, MAP −0,007): con 10 query non significative.
+  Il boost del titolo si giustifica con il known-item (+0,016 MRR sul titolo).
+- **Categorie nella ricerca — leggermente utili**: senza, MAP scende da 0,920 a 0,902.
+- **MRR = 1 ovunque**: per tutte le query il primo risultato è rilevante in ogni configurazione.
+
+**Limiti di questa valutazione:**
+- Solo 10 query e pool profondo 10: molte query sono al "soffitto" (P@10 = 1 per 7 query su 10), quindi le
+  differenze di pochi centesimi non sono significative. Contano gli effetti grandi e spiegabili (q10, q20, q23).
+- Recall relativa ai rilevanti *conosciuti* nel pool, non a tutti quelli del dump.
+- I giudizi sono di un LLM, che ha visto solo titolo e inizio dell'articolo; inoltre lo stesso assistente ha
+  contribuito a sviluppare il sistema. Per questo serve il controllo umano su un campione.
+- q13: tra i risultati di tutte le configurazioni ci sono 7 articoli fuori tema (mostre d'arte a Venezia, sciopero
+  dello spettacolo): "mostra" e "Venezia" sono ambigui. Solo 5 rilevanti trovati: molti articoli sulla Mostra
+  usano "arte cinematografica" e non "cinema".
+
+**Controllo dei giudizi (da fare, ~10 minuti):** una persona del gruppo apre `qrels.tsv`, sceglie 20 righe a caso
+(2 per query), copre la colonna `relevance`, dà il proprio voto leggendo `need` e articolo, e conta quante volte
+coincide con quello del modello. Riportare l'accordo (es. "17/20 = 85%") nella frase per la relazione. Se l'accordo
+è basso, correggere le righe in disaccordo e rilanciare il test.
 
 Osservazioni sul known-item:
 - 71 articoli hanno un abstract troppo corto per la variante dal testo.

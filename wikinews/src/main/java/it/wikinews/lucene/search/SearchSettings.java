@@ -112,6 +112,20 @@ public class SearchSettings {
         this.proximityBoost = proximityBoost;
     }
 
+    /**
+     * Copia tutti i valori da un'altra configurazione.
+     * Usato dai test di valutazione per provare più configurazioni e poi ripristinare quella iniziale.
+     */
+    public void copyFrom(SearchSettings other) {
+        this.andOperator = other.andOperator;
+        this.nameBoost = other.nameBoost;
+        this.abstractBoost = other.abstractBoost;
+        this.contentBoost = other.contentBoost;
+        this.categoriesBoost = other.categoriesBoost;
+        this.proximitySlop = other.proximitySlop;
+        this.proximityBoost = other.proximityBoost;
+    }
+
     /** Descrizione leggibile, da stampare insieme ai risultati della valutazione. */
     @Override
     public String toString() {

@@ -76,15 +76,20 @@ Ultimo aggiornamento: 2026-11-18
 
 ### 1. Metriche di valutazione
 - [x] 28 query con bisogno informativo in `src/test/resources/evaluation/queries.tsv` (`qid`, `query`, `need`)
-- [x] `PoolBuilderTest`: per ogni query scrive i primi 20 risultati in `target/evaluation/pool.tsv` (530 righe)
-- [ ] **Giudicare il pool**: colonna `relevance` con 0/1/2 leggendo il `need` della query, poi salvare il file come
-      `src/test/resources/evaluation/qrels.tsv` (vedi [Come giudicare il pool](#come-giudicare-il-pool))
+- [x] `PoolBuilderTest`: 10 query scelte, primi 10 risultati di **ogni** configurazione dell'ablation uniti
+      (pooling equo) in `target/evaluation/pool.tsv` (135 righe); conserva i voti già presenti in `qrels.tsv`
+- [x] **Giudizi del pool** (135 righe) assegnati da Claude Opus 5.5 il 2026-11-19, in
+      `src/test/resources/evaluation/qrels.tsv` (metodo e testo per la relazione in `TEST_NOTES.md`)
+- [ ] **Controllo umano dei giudizi**: 20 righe a caso, misurare l'accordo con il modello (~10 minuti)
+- [x] `RetrievalEvaluationTest`: P@10, Recall@100, MAP, MRR, nDCG@10 per ogni configurazione in un'unica esecuzione
+      (collaudato con giudizi finti; viene saltato finché `qrels.tsv` non esiste)
+- [ ] Efficienza sull'indice completo: tempo di indicizzazione, dimensione dell'indice, latenza
+      (la tabella nel `README.MD` viene da un indice di 100 articoli)
 - [x] **Valutazione automatica known-item** (`KnownItemEvaluationTest`): 500 articoli scelti a caso (seme fisso)
       cercano se stessi, con query dal titolo e con 4 parole del testo non presenti nel titolo.
       Lancio: `./mvnw test -Dtest=KnownItemEvaluationTest -DexcludedGroups=none` (circa 40 s).
       Dettaglio per query in `target/evaluation/known-item.tsv`
 - [ ] Valutazione automatica con le categorie come giudizi (escludendo il campo `categories` dalla ricerca)
-- [ ] `RetrievalEvaluationTest`: calcola P@10, MRR, MAP, nDCG@10 sull'indice completo e salva la tabella
 - [x] Tag JUnit `evaluation` per i test sull'indice reale, esclusi dal normale `./mvnw test`
 - [ ] Mettere `@Tag("evaluation")` anche su `RealIndexPerformanceTest`
 - [ ] Ampliare il pool con i risultati delle varianti dell'ablation (oggi viene da una sola configurazione)
@@ -95,14 +100,18 @@ Ultimo aggiornamento: 2026-11-18
 #### Come giudicare il pool
 1. Generare il pool (circa 30 secondi, indicizza tutto il dump in `target/evaluation-index`):
    `./mvnw test -Dtest=PoolBuilderTest -DexcludedGroups=none`
-2. Aprire `wikinews/target/evaluation/pool.tsv` (va bene anche un foglio di calcolo, salvando in TSV).
+2. Aprire `wikinews/target/evaluation/pool.tsv` (colonne `qid`, `id`, `relevance`, `title`, `url`;
+   va bene anche un foglio di calcolo, salvando in TSV). Le righe sono in ordine di titolo, non di posizione:
+   così chi giudica non sa quale configurazione ha messo l'articolo in alto.
 3. Per ogni riga leggere il titolo (e l'articolo dall'`url`, se serve) e scrivere in `relevance`:
    **0** = non risponde al bisogno, **1** = in parte, **2** = risponde pienamente.
    Il criterio è il `need` della query in `queries.tsv`, non le parole della query.
-4. Dividere le query fra noi (per esempio q01–q10, q11–q19, q20–q28) e giudicare in modo indipendente.
-5. Salvare il risultato come `wikinews/src/test/resources/evaluation/qrels.tsv`, senza cambiare le colonne.
+4. Dividere le 10 query fra noi (per esempio 4 + 3 + 3) e giudicare in modo indipendente.
+5. Salvare il risultato come `wikinews/src/test/resources/evaluation/qrels.tsv`, senza cambiare le intestazioni.
+6. Calcolare le metriche: `./mvnw test -Dtest=RetrievalEvaluationTest -DexcludedGroups=none`
 
-Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già scritti andrebbero persi.
+Rigenerare il pool non fa perdere lavoro: i voti già presenti in `qrels.tsv` vengono ricopiati.
+Le query da giudicare e le configurazioni confrontate sono in `PoolBuilderTest` e `AblationConfigurations`.
 
 #### Risultati known-item (configurazione attuale, 2026-11-18)
 
@@ -125,7 +134,8 @@ Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già sc
   - [x] AND contro OR con il known-item (risultati in `TEST_NOTES.md`; da confermare per argomento)
   - [x] prossimità attiva / disattivata (known-item: effetto nullo, il metodo non la misura bene)
   - [x] categorie incluse o escluse dalla ricerca libera (known-item: effetto nullo)
-  - [ ] ripetere boost, prossimità e categorie con la valutazione per argomento (giudizi manuali)
+  - [x] ripetere boost, AND/OR, prossimità e categorie con la valutazione per argomento
+        (prossimità utile, AND con costo localizzato su q20; risultati in `TEST_NOTES.md`)
   - [ ] BM25 contro TF-IDF (`ClassicSimilarity`)
   - [ ] `ItalianAnalyzer` contro `StandardAnalyzer` (serve un secondo indice)
   - [ ] `SimpleTextCodec` contro codec di default (tempo e dimensione dell'indice)
@@ -166,6 +176,8 @@ Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già sc
 
 | Data | Branch | Modifica |
 |---|---|---|
+| 2026-11-19 | `dev/adducec` | Giudizi di rilevanza (Claude Opus 5.5) e risultati della valutazione per argomento |
+| 2026-11-19 | `dev/adducec` | Valutazione per argomento: pool unito su 5 configurazioni (10 query, 135 righe), `RetrievalEvaluationTest` |
 | 2026-11-19 | `dev/adducec` | Ablation known-item: tutti i boost a 1, senza prossimità, senza categorie |
 | 2026-11-19 | `dev/adducec` | Operatore AND/OR configurabile, ablation AND contro OR |
 | 2026-11-19 | `dev/adducec` | Boost configurabili (`SearchSettings`), `QueryFactorySettingsTest`, prima ablation sul boost del titolo |
