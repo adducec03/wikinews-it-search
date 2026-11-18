@@ -25,6 +25,21 @@
         (<span th:text="${response.tookMs}">0</span> ms) — pagina
         <span th:text="${response.page}">1</span> di <span th:text="${response.totalPages}">1</span>
     </p>
+
+    <!-- Suggerimento di ricerca -->
+    <div class="suggestion"
+        th:if="${response != null
+                and response.suggestedQuery != null}">
+
+        <p>
+            Forse cercavi:
+            <strong class="suggested-query"
+                    th:text="${response.suggestedQuery}">
+            </strong>?
+        </p>
+
+    </div>
+
     <p class="meta" th:if="${response == null and error == null}">Inserisci una query per iniziare.</p>
 
     <section th:if="${response}">
