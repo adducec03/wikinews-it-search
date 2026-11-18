@@ -2,6 +2,7 @@
 
 File di lavoro del gruppo: obiettivi, cosa è fatto, cosa resta da fare, problemi noti.
 Il README per chi installa e usa il sistema è `README.MD`.
+Le note sulla valutazione (metriche, ablation, errori da evitare) sono in `TEST_NOTES.md`.
 
 **Come aggiornarlo:** quando finisci un punto, spuntalo (`- [x]`), spostalo in "Fatto" con il branch
 o il commit, e aggiungi una riga al [registro delle modifiche](#registro-delle-modifiche).
@@ -78,6 +79,11 @@ Ultimo aggiornamento: 2026-11-18
 - [x] `PoolBuilderTest`: per ogni query scrive i primi 20 risultati in `target/evaluation/pool.tsv` (530 righe)
 - [ ] **Giudicare il pool**: colonna `relevance` con 0/1/2 leggendo il `need` della query, poi salvare il file come
       `src/test/resources/evaluation/qrels.tsv` (vedi [Come giudicare il pool](#come-giudicare-il-pool))
+- [x] **Valutazione automatica known-item** (`KnownItemEvaluationTest`): 500 articoli scelti a caso (seme fisso)
+      cercano se stessi, con query dal titolo e con 4 parole del testo non presenti nel titolo.
+      Lancio: `./mvnw test -Dtest=KnownItemEvaluationTest -DexcludedGroups=none` (circa 40 s).
+      Dettaglio per query in `target/evaluation/known-item.tsv`
+- [ ] Valutazione automatica con le categorie come giudizi (escludendo il campo `categories` dalla ricerca)
 - [ ] `RetrievalEvaluationTest`: calcola P@10, MRR, MAP, nDCG@10 sull'indice completo e salva la tabella
 - [x] Tag JUnit `evaluation` per i test sull'indice reale, esclusi dal normale `./mvnw test`
 - [ ] Mettere `@Tag("evaluation")` anche su `RealIndexPerformanceTest`
@@ -97,6 +103,18 @@ Ultimo aggiornamento: 2026-11-18
 5. Salvare il risultato come `wikinews/src/test/resources/evaluation/qrels.tsv`, senza cambiare le colonne.
 
 Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già scritti andrebbero persi.
+
+#### Risultati known-item (configurazione attuale, 2026-11-18)
+
+| Query | N. query | MRR | Success@1 | Success@10 | Non trovati (top 100) |
+|---|---|---|---|---|---|
+| Titolo | 500 | 0,959 | 0,938 | 0,996 | 0 |
+| 4 parole del testo | 429 | 0,830 | 0,795 | 0,893 | 20 |
+
+- 71 articoli non hanno abbastanza parole adatte nell'abstract per la seconda variante.
+- Quasi tutti i non trovati sono cronache sportive con lo stesso schema ("Serie A 2011-2012: 35ª giornata"):
+  le parole scelte ("classifica", "risultati", "giornata") compaiono in centinaia di articoli quasi identici,
+  quindi la query è ambigua anche per un umano. È un limite del metodo, non solo del motore.
 
 ### 2. Ablation study e verifica delle scelte
 - [ ] Rendere configurabili boost, AND/OR e prossimità (oggi costanti in `QueryFactory`), per provarli senza modificare il codice
@@ -145,6 +163,8 @@ Il pool va rigenerato solo se cambiano le query: rigenerandolo i giudizi già sc
 
 | Data | Branch | Modifica |
 |---|---|---|
+| 2026-11-18 | `dev/adducec` | Creato `TEST_NOTES.md` (strategia, metriche, piano di ablation) |
+| 2026-11-18 | `dev/adducec` | Valutazione automatica known-item (`KnownItemEvaluationTest`) |
 | 2026-11-18 | `dev/adducec` | 28 query di valutazione, `PoolBuilderTest`, tag `evaluation` escluso di default nel `pom.xml` |
 | 2026-11-18 | `dev/adducec` | `id` in `SearchResult`; `IrMetrics` e `IrMetricsTest`; creato questo file |
 | 2026-11-18 | `dev/adducec` | Indicizzazione: campi mancanti e duplicati (commit `fe1b11d`) |
