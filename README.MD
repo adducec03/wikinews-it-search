@@ -19,7 +19,6 @@ Windows:
 ```
 
 ## Funzionamento
-L'utente scrive la query nella barra di ricerca (con eventuali filtri per categoria, date e ordinamento): il form invia una richiesta GET a `/search`, gestita da `SearchController`. Il controller passa i parametri a `SearchService`, che costruisce la query Lucene (`QueryFactory`: testo su titolo, abstract, contenuto e categorie con pesi diversi, più filtri su categoria e data) e la esegue sull'indice tramite `ArticleSearcher`, ordinando per rilevanza o per data. Per ogni risultato vengono generati uno snippet con le parole evidenziate (`UnifiedHighlighter`) e i dati dell'articolo (titolo, URL, data, categorie).
 
 ### Import e Indicizzazione
 A tempo di avvio parte `indexStartup.run` con `ImportService.importArticle`. Questo metodo legge il json con gli alticoli, passa il `ArticleParcer.parce`, che legge le informazioni tramite le classi definite nel modello e infine indicizza con `ArticleIndexer.index` che per ogni Articolo individuato dal parcer agigunge il Documento con tutti i rispettivi Field. I campi analizzati sono indicati in `IndexFields.java` e sono : ID, URL, NAME, ABSTRACT, CONTENT, DATE_MODIFIED e CATEGORIES.
@@ -31,14 +30,17 @@ La classe `SearchService.java` gestisce l'intero flusso della ricerca nel seguen
 - `AnalyzerFactory.createAnalyzer()` : restituisce lo stesso [anaylzer](#analyzer) utilizzato in fase di indicizzazione 
 - `QueryFactory.build(analyzer, text, category, from, to)` : crea la query passandola per un [parser](#parcer), sempre con l'analyzer
 - `ArticleSearcher.search` : viene prima acquisito e poi rilasciato. Il sercher esegue la ricerca della query ottenuta, usando le librerie lucene. La ricerca può essere effettuata con sort o meno.
-- `getSearchResults` : si dividono i risultati ottenuti singolarmente avendo diversi `SearchResults` con il proprio score di rilevanza
+- `getSearchResults` : si dividono i risultati ottenuti singolarmente avendo diversi `SearchResults` con il proprio score di rilevanza, generando uno snippet con le parole evidenziate (`UnifiedHighlighter`) e i dati dell'articolo
 - `return new SearchResponse(...)` : crea la risposta da passare al controller cos' da visualizzare i risultati ottenuti dalla ricerca 
 
 
 ### Struttura web
 Le operazioni di ricerca vengono invocate dal `SearchController.java`, con il metodo `SearchService.search`, che gestisce la query e tutti i parametri di filtro e ordinamento tramite un metodo `GET` che rimanda alle pagine Thymeleaf (`search.html`, con i fragment `header`, `searchBar` e `footer`), con lo stile in `static/css/style.css`. Il service restituisce `SearchResponce` nel model.
 #### Paginazione e ricerca
-I risultati vengono mostrati 10 in ogni pagina
+I risultati vengono mostrati 10 in ogni pagina. Sono disponibili i filtri per categoria, data (come intervallo) e la possibilità di ordinamento per rilevanza o per data.
+Il filtro per categoria ha una piccolo pannello di consiglio di categorie presenti nei documenti. 
+
+Nella ricerca è stato aggiunta un'opzione per consiglio di stringa inserita, il "forse cercavi..."
 
 ## Test
 Il sistema viene con 2 tipologie di test:
@@ -90,7 +92,15 @@ In questo progetto viene utilizzato un AnalyzerWrapper formato da `ItalianAnalyz
 Viene creato in `AnalyzerFactory.java`
 
 ### Parcer
+...
 
 ## Sviluppi futuri
 - Inizializzare i campi non indicizzati
-- l'opzione "stavi cercando ..?"
+- Ablazioni e metriche
+
+
+## Metriche
+
+- Latenza 
+- (todo)nDCG@k : che valuta il rapporto dei casi presi rispetto al risultato perfetto.
+- (todo) precision@k : quanti mi interessa dei primi k
