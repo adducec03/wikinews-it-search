@@ -179,7 +179,7 @@ class WikinewsApplicationTests {
             // SearcherManager "near real time" sul writer: vede anche i documenti aggiunti
             // dopo
             manager = new SearcherManager(writer, null);
-            service = new SearchService(new ArticleSearcher(manager));
+            service = new SearchService(new ArticleSearcher(manager), null);
         }
 
         /**
