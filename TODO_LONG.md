@@ -193,3 +193,28 @@ Le query da giudicare e le configurazioni confrontate sono in `PoolBuilderTest` 
 | — | `dev/adducec` | Autocompletamento delle categorie |
 | — | `dev/shiko` | Test funzionali e di prestazioni |
 | — | `dev/adducec` | AND di default, boost dei campi, prossimità, conteggio esatto, ordinamento per data senza testo |
+
+
+### Schema ppt
+
+Sfide (3 min)
+dump HTML da parsare
+48 duplicati
+266 articoli senza abstract e 23 senza categorie
+testo italiano (stemming, stop word)
+come valutare senza giudizi già pronti
+Soluzioni (5 min)
+pipeline: dump → parser (Jsoup) → analyzer → indice → ricerca → UI
+campi con boost 3/2/1/1
+AND di default con prossimità
+snippet evidenziati
+“forse cercavi…”
+filtri per categoria e data
+Strategia di test (4 min): i 4 livelli (correttezza, copertura, efficienza, efficacia).
+Risultati (6 min)
+latenza (p95 sotto i 20 ms)
+codec: indice 9 volte più piccolo con quello di default
+known-item: titolo MRR 0,959 e testo 0,830
+ablazione: AND contro OR (0,830 → 0,585), prossimità utile sui giudizi (nDCG 0,919 → 0,887)
+BM25 contro TF-IDF e analyzer, se li fai girare
+Demo (2 min).
