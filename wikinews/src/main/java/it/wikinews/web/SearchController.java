@@ -1,14 +1,20 @@
 package it.wikinews.web;
 
+import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
+import it.wikinews.lucene.search.CategoryService;
 import it.wikinews.lucene.search.SearchService;
 
 @Controller
@@ -17,9 +23,13 @@ public class SearchController {
     private static final int PAGE_SIZE = 10;
 
     private final SearchService searchService;
+    private final CategoryService categoryService;
 
-    public SearchController(SearchService searchService) {
+
+    public SearchController(SearchService searchService, CategoryService categoryService) {
         this.searchService = searchService;
+        this.categoryService = categoryService;
+
     }
 
     @GetMapping("/")
@@ -55,4 +65,12 @@ public class SearchController {
         }
         return "search";
     }
+
+    @GetMapping("/categories")
+    @ResponseBody
+    public List<String> categories(@RequestParam(name = "q", defaultValue = "") String q) throws IOException {
+        return categoryService.suggest(q, 10);
+    }
+
+
 }

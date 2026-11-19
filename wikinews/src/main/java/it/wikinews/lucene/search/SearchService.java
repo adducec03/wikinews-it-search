@@ -16,6 +16,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.uhighlight.DefaultPassageFormatter;
 import org.apache.lucene.search.uhighlight.UnifiedHighlighter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import it.wikinews.lucene.AnalyzerFactory;
@@ -27,9 +28,28 @@ public class SearchService {
     private static final int SNIPPET_FALLBACK_LENGTH = 250;
 
     private final ArticleSearcher articleSearcher;
+    private final Analyzer analyzer;
+    private final QuerySuggestionService querySuggestionService;
+    private final SearchSettings settings;
 
-    public SearchService(ArticleSearcher articleSearcher) {
+    /** Costruttore usato da Spring: i pesi arrivano da application.properties (vedi SearchSettings). */
+    @Autowired
+    public SearchService(ArticleSearcher articleSearcher, QuerySuggestionService querySuggestionService,
+                         SearchSettings settings) {
         this.articleSearcher = articleSearcher;
+        this.analyzer = AnalyzerFactory.createAnalyzer();
+        this.querySuggestionService = querySuggestionService;
+        this.settings = settings;
+    }
+
+    /** Costruttore con i pesi di default (usato dai test che creano il servizio a mano). */
+    public SearchService(ArticleSearcher articleSearcher, QuerySuggestionService querySuggestionService) {
+        this(articleSearcher, querySuggestionService, new SearchSettings());
+    }
+
+    /** Pesi in uso: i test di valutazione li modificano per l'ablation study. */
+    public SearchSettings getSettings() {
+        return settings;
     }
 
     /**
@@ -42,20 +62,39 @@ public class SearchService {
     public SearchResponse search(String text, String category, LocalDate from, LocalDate to,
                                  boolean sortByDate, int page, int pageSize) throws ParseException, IOException {
         long start = System.nanoTime();
-        Analyzer analyzer = AnalyzerFactory.createAnalyzer();
-        boolean hasText = text != null && !text.isBlank();
-        Query query = QueryFactory.build(analyzer, text, category, from, to);
+        boolean hasText = (text != null) && (!text.isBlank());
+        boolean useDateSort = sortByDate;
+        // se non c'è testo nella query (es filtra solo per categoria o data) allora ordina per data
+        // evita che tutti i documenti hanno stesso punteggio e l'ordine è casuale
+        if (!hasText) {
+            useDateSort = true;
+        }
+        Query query = QueryFactory.build(analyzer, settings, text, category, from, to);
         IndexSearcher searcher = articleSearcher.acquireSearcher();
         try { 
             int safePage = Math.max(1, page);
             int upTo = safePage * pageSize;
-            TopDocs top = articleSearcher.search(searcher, query, upTo, sortByDate);
+            TopDocs top = articleSearcher.search(searcher, query, upTo, useDateSort);
+
+            String suggestedQuery = null;
+            Query suggestedLuceneQuery = null;
+            if (top.totalHits.value == 0 && hasText) {
+                QuerySuggestionResult result = querySuggestionService.suggest(text, category, from, to,searcher);
+                if (result != null) {
+                    suggestedQuery = result.text();
+                    suggestedLuceneQuery = result.query();
+                    if (suggestedLuceneQuery != null) {
+                        top = articleSearcher.search(searcher, suggestedLuceneQuery, upTo, useDateSort);
+                    }
+                }
+            }
 
             int fromIdx = Math.min((safePage - 1) * pageSize, top.scoreDocs.length);
-            List<SearchResult> results = getSearchResults(fromIdx, query, top, searcher, analyzer, hasText);
+            List<SearchResult> results = getSearchResults(fromIdx, suggestedQuery != null ? suggestedLuceneQuery : query, top, searcher, analyzer, hasText);
             
             long took = (System.nanoTime() - start) / 1_000_000;
-            return new SearchResponse(text, top.totalHits.value, safePage, pageSize, took, results);
+            long total = searcher.count(query);
+            return new SearchResponse(text, suggestedQuery, total, safePage, pageSize, took, results);
         } finally {
             articleSearcher.releaseSearcher(searcher);
         }
@@ -83,7 +122,21 @@ public class SearchService {
             Number millis = doc.getField(IndexFields.DATE_MODIFIED) != null
                     ? doc.getField(IndexFields.DATE_MODIFIED).numericValue() 
                     : null;
-            results.add(new SearchResult(doc.get(IndexFields.NAME), doc.get(IndexFields.URL), snippet, millis != null ? new Date(millis.longValue()) : null, splitCategories(doc.get(IndexFields.CATEGORIES)), slice[i].score));
+            Date date = null;
+            if (millis != null) {
+                date = new Date(millis.longValue());
+            }
+
+            // l'id ("identifier" del dump) serve alla valutazione: è stabile tra un'indicizzazione e l'altra
+            SearchResult result = new SearchResult(
+                    doc.get(IndexFields.ID),
+                    doc.get(IndexFields.NAME),
+                    doc.get(IndexFields.URL),
+                    snippet,
+                    date,
+                    splitCategories(doc.get(IndexFields.CATEGORIES)),
+                    slice[i].score);
+            results.add(result);
         }
 
         return results;

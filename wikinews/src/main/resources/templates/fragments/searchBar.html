@@ -33,9 +33,13 @@
         <summary>Filtri e ordinamento</summary>
         <div class="row row-filters">
 
-            <!-- Filtro categoria  ->  parametro "category" -->
-            <input type="text" name="category" th:value="${category}"
+            <!-- Filtro categoria  ->  parametro "category"
+                 I suggerimenti arrivano da GET /categories?q=... (vedi js/category-autocomplete.js) -->
+            <input type="text" id="category-input" name="category" list="category-list"
+                   autocomplete="off" th:value="${category}"
+                   th:data-suggest-url="@{/categories}"
                    placeholder="Categoria" aria-label="Categoria">
+            <datalist id="category-list"></datalist>
 
             <!-- Intervallo date  ->  parametri "from" e "to" (formato yyyy-MM-dd) -->
             <label>Dal <input type="date" name="from" th:value="${from}"></label>

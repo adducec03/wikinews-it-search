@@ -9,13 +9,17 @@ import org.apache.lucene.analysis.StopFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.it.ItalianAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 
 import it.wikinews.lucene.index.IndexFields;
 
 public class AnalyzerFactory {
     public static Analyzer createAnalyzer() {
+        //Analyzer standard per i campi senza analyzer specificato
         Analyzer italianAnalyzer = new ItalianAnalyzer();
+
+        //Creazione dell'analyzer per il campo CATEGORIES
         CharArraySet stopwords = new CharArraySet(ItalianAnalyzer.getDefaultStopSet(), true);
         stopwords.add("pubblicati");
         stopwords.add("articoli");
@@ -29,8 +33,11 @@ public class AnalyzerFactory {
                 return new TokenStreamComponents(tokenizer, tokenStream);
             }
         };
+        Analyzer suggestAnalyzer = new StandardAnalyzer();
+        
         Map<String, Analyzer> byField = Map.of(
-            IndexFields.CATEGORIES, categoryAnalyzer
+            IndexFields.CATEGORIES, categoryAnalyzer,
+            IndexFields.SUGGEST_TERMS, suggestAnalyzer
         );
 
         return new PerFieldAnalyzerWrapper(italianAnalyzer, byField);
