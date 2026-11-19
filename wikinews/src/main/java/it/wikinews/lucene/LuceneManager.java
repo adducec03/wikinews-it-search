@@ -32,7 +32,7 @@ public class LuceneManager {
         directory = FSDirectory.open(indexPath);
         analyzer = AnalyzerFactory.createAnalyzer();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
-        config.setCodec(new SimpleTextCodec());
+        // config.setCodec(new SimpleTextCodec());
         config.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
 
         indexWriter = new IndexWriter(directory, config);

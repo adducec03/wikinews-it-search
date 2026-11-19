@@ -262,6 +262,92 @@ Riepilogo: 210 ricerche, **media 25,9 ms**, la più lenta 79,8 ms, 39 ricerche/s
   (stress), là le 28 query realistiche di `queries.tsv`. Inoltre i test sono stati eseguiti tutti nella stessa sessione: per i valori finali conviene rilanciarli da soli, due volte (sezione 11).
 - Questo test usa l'indice dell'applicazione, cioè **con `SimpleTextCodec`**: dopo averlo tolto le latenze scenderanno (≈ metà).
 
+
+
+
+
+#### Latenza per tipo di query (`RealIndexPerformanceTest`, indice completo, 21 query × 10 esecuzioni dopo la prima)
+
+Le 21 query sono volutamente "difficili" (wildcard, `+`/`-`, filtri combinati): si tratta quindi di un test di stress, più pesante rispetto al traffico tipico.
+
+| Query | Hit | Prima (ms) | Min | Media | Max |
+|---|---:|---:|---:|---:|---:|
+| termine singolo (`scuola`) | 364 | **255,80** | 19,18 | 24,95 | 33,85 |
+| termine frequente (`europa`) | 8643 | 28,01 | 10,91 | 15,58 | 21,41 |
+| altro termine (`governo`) | 1145 | 18,54 | 7,33 | 11,97 | 17,08 |
+| nome proprio (`Roma`) | 2656 | 13,60 | 6,71 | 8,87 | 14,45 |
+| due termini | 100 | 60,86 | 12,75 | 16,12 | 21,02 |
+| frase esatta | 1 | 16,45 | 4,66 | 8,69 | 17,04 |
+| `+calcio -serie` | 1031 | 20,79 | 9,50 | 11,33 | 18,02 |
+| campo `categories:sport` | 4091 | 7,98 | 2,61 | 3,13 | 3,89 |
+| 2 parole (default) | 39 | 12,87 | 8,90 | 12,95 | 15,69 |
+| 2 parole con OR | 485 | 13,84 | 6,88 | 10,06 | 14,91 |
+| 2 parole con AND | 39 | 13,16 | 8,03 | 8,89 | 10,50 |
+| wildcard (`terrem*`) | 166 | 58,30 | 11,50 | 12,96 | 16,36 |
+| query lunga | 1 | 13,11 | 7,36 | 8,29 | 9,23 |
+| nessun risultato | 0 | **43,67** | 11,81 | 16,73 | 22,03 |
+| testo + categoria | 778 | 18,11 | 6,48 | 9,36 | 13,28 |
+| solo categoria | 4091 | 32,09 | 2,08 | 3,98 | 5,94 |
+| testo + date | 456 | 29,96 | 7,57 | 12,66 | 19,79 |
+| solo date | 6306 | 3,93 | 1,79 | 2,41 | 3,64 |
+| testo + categoria + date | 207 | 17,53 | 6,18 | 9,76 | 16,05 |
+| ordinata per data | 695 | 6,39 | 3,78 | 5,88 | 7,33 |
+| tutti i documenti | 12213 | 3,50 | 1,44 | 1,56 | 1,69 |
+
+**Riepilogo:** 210 ricerche, **tempo medio 10,29 ms**, la più lenta 33,85 ms, 97 ricerche/s su un thread.
+
+**Cosa vuol dire:**
+- **Il default è AND (conferma sperimentale):** "2 parole" senza operatore restituisce 39 risultati, esattamente come l'AND esplicito; con OR esplicito i risultati salgono a 485.
+- **Query più pesanti:** termine singolo (`scuola`, 24,95 ms), termine frequente (`europa`, 15,58 ms), query senza risultati (16,73 ms) e due termini (16,12 ms). La wildcard, invece, ha una media di 12,96 ms: l'espansione dei termini non rappresenta più un costo particolarmente elevato.
+- **Query leggere:** ricerca di tutti i documenti (1,56 ms), ricerca per data (2,41 ms) e ricerca per categoria (3,98 ms). Anche le query combinate con testo, categoria e date rimangono sotto i 13 ms di media.
+- **Prima esecuzione ancora più lenta delle successive:** la prima query singola impiega 255,80 ms, contro una media di 24,95 ms nelle esecuzioni successive. Anche la ricerca senza risultati passa da 43,67 ms a una media di 16,73 ms. Rimane quindi evidente un costo iniziale di inizializzazione, anche se molto inferiore rispetto al test precedente.
+- **Prestazioni complessivamente migliorate:** il tempo medio passa da 25,9 ms a 10,29 ms, mentre la capacità di elaborazione sale da 39 a 97 ricerche al secondo su un singolo thread.
+- **La distribuzione dei costi è cambiata:** le query con operatori `+`/`-`, wildcard e frase esatta, che nel test precedente erano tra le più costose, ora hanno latenze medie rispettivamente di 11,33 ms, 12,96 ms e 8,69 ms.
+
+### Confronto con il test precedente
+
+Il confronto tra i due test evidenzia un miglioramento significativo delle prestazioni, sia in termini di latenza media sia di capacità complessiva di elaborazione.
+
+| Indicatore | Test precedente | Nuovo test | Miglioramento |
+|---|---:|---:|---:|
+| Tempo medio | 25,9 ms | **10,29 ms** | -60,3% |
+| Ricerche al secondo (1 thread) | 39 | **97** | +148,7% |
+| Query più lenta (media) | 79,8 ms | **24,95 ms** | -68,7% |
+| Termine singolo (`scuola`) | 17,81 ms | 24,95 ms | +40,1% |
+| Termine frequente (`europa`) | 30,76 ms | 15,58 ms | -49,3% |
+| Nome proprio (`Roma`) | 23,91 ms | 8,87 ms | -62,9% |
+| Due termini | 21,07 ms | 16,12 ms | -23,5% |
+| Frase esatta | 35,84 ms | 8,69 ms | -75,8% |
+| `+calcio -serie` | 65,31 ms | 11,33 ms | -82,7% |
+| Categoria | 17,11 ms | 3,98 ms | -76,7% |
+| Wildcard | 42,37 ms | 12,96 ms | -69,4% |
+| Nessun risultato | 15,17 ms | 16,73 ms | +10,3% |
+| Testo + categoria | 31,37 ms | 9,36 ms | -70,2% |
+| Testo + date | 53,01 ms | 12,66 ms | -76,1% |
+| Tutti i documenti | 6,55 ms | 1,56 ms | -76,2% |
+
+Le percentuali indicano la variazione della latenza media: un valore negativo rappresenta un miglioramento.
+
+### Conclusioni
+
+- **Il miglioramento generale è notevole:** la latenza media è diminuita di circa il 60%, passando da 25,9 a 10,29 ms. A parità di un singolo thread, il sistema è passato da 39 a 97 ricerche al secondo, con una capacità di elaborazione circa 2,5 volte superiore.
+- **Il beneficio maggiore riguarda le query complesse:** le ricerche con operatori `+`/`-` sono passate da 65,31 a 11,33 ms (-82,7%); quelle con testo e date da 53,01 a 12,66 ms (-76,1%); le wildcard da 42,37 a 12,96 ms (-69,4%). Anche le frasi esatte hanno beneficiato del miglioramento, passando da 35,84 a 8,69 ms.
+- **I filtri sono diventati particolarmente efficienti:** le ricerche per categoria e per data richiedono mediamente rispettivamente 3,98 e 2,41 ms. Anche le combinazioni di testo, categoria e date rimangono molto veloci.
+- **Il termine singolo è l'unica regressione significativa tra le query con risultati:** `scuola` passa da 17,81 a 24,95 ms (+40,1%). È un comportamento da tenere sotto osservazione, soprattutto perché la prima esecuzione continua a essere sensibilmente più lenta delle successive.
+- **La ricerca senza risultati è leggermente peggiorata:** passa da 15,17 a 16,73 ms (+10,3%). La differenza è contenuta, ma suggerisce che il percorso di gestione delle query senza corrispondenze non ha beneficiato degli stessi miglioramenti delle altre tipologie.
+- **L'inizializzazione iniziale è ancora un aspetto da migliorare:** la prima ricerca passa da 5788 ms a 255,80 ms. Il miglioramento è enorme, ma il divario tra prima esecuzione e successive rimane evidente. Rimane quindi valida l'idea di effettuare un riscaldamento delle cache e dei suggerimenti all'avvio.
+- **Il nuovo risultato è più equilibrato:** nel test precedente alcune tipologie di query arrivavano a superare i 50-60 ms di media, mentre ora tutte le query, escluse le anomalie della prima esecuzione, rimangono sotto i 25 ms.
+
+**Conclusione generale:** il nuovo test conferma un salto prestazionale importante. Il sistema è passato da una media di circa 26 ms a poco più di 10 ms, con quasi 100 ricerche al secondo su un singolo thread. Il miglioramento è particolarmente evidente sulle query più complesse, che erano il principale punto debole del test precedente. Le prestazioni attuali sono decisamente più uniformi e rendono il motore di ricerca adatto a gestire anche interrogazioni articolate con latenze contenute.
+
+Per i valori definitivi, conviene comunque eseguire nuovamente i test in sessioni separate, almeno due volte, mantenendo identiche le condizioni di benchmark.
+
+
+
+
+
+
+
 ### 4.4 Efficacia: known-item (automatica) ✅
 
 500 articoli a caso (seme fisso 42, quindi ripetibile) cercano se stessi; si guardano i primi 100 risultati.
