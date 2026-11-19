@@ -29,7 +29,9 @@ public class ImportService {
 
     public void importArticles() throws Exception {
 
+        // array di un elemento perché dentro la lambda si possono modificare solo oggetti, non variabili locali
         int[] count = {0};
+        int[] errors = {0};
         jsonReader.read(dumpPath, json -> {
             try {
                 if (count[0] > MAX_ARTICLE_IMPORT) {
@@ -39,10 +41,13 @@ public class ImportService {
                 articleIndexer.index(article);
                 count[0]++;
             } catch (Exception e) {
+                errors[0]++;
                 System.err.println("Errore articolo[" + count[0] + "]: " + e.getMessage());
             }
         });
         articleIndexer.commit();
-        System.out.println("Totale articoli importati: " + count[0]);
+        System.out.println("Totale articoli importati: " + count[0] + ", scartati per errore: " + errors[0]);
+        // può essere minore degli articoli importati: i duplicati (stesso id) si sostituiscono a vicenda
+        System.out.println("Documenti presenti nell'indice: " + articleIndexer.countDocuments());
     }
 }
