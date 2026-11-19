@@ -53,6 +53,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import it.wikinews.lucene.AnalyzerFactory;
 import it.wikinews.lucene.index.IndexFields;
 import it.wikinews.lucene.search.ArticleSearcher;
+import it.wikinews.lucene.search.QuerySuggestionService;
 import it.wikinews.lucene.search.SearchResponse;
 import it.wikinews.lucene.search.SearchResult;
 import it.wikinews.lucene.search.SearchService;
@@ -179,7 +180,7 @@ class WikinewsApplicationTests {
             // SearcherManager "near real time" sul writer: vede anche i documenti aggiunti
             // dopo
             manager = new SearcherManager(writer, null);
-            service = new SearchService(new ArticleSearcher(manager),null);
+            service = new SearchService(new ArticleSearcher(manager), new QuerySuggestionService());
         }
 
         /**
@@ -415,7 +416,7 @@ class WikinewsApplicationTests {
         SearchResponse field = search("categories:sport");
         printResponse("categories:sport  (campo esplicito)", field);
 
-        SearchResponse or = search("terremoto calcio");
+        SearchResponse or = search("terremoto OR calcio");
         printResponse("terremoto calcio  (operatore di default: OR)", or);
 
         assertAll(
@@ -543,7 +544,7 @@ class WikinewsApplicationTests {
         step("Ordinamento per rilevanza e per data (decrescente)");
 
         // Per rilevanza: gli score devono essere non crescenti
-        SearchResponse byScore = search("terremoto calcio", "", null, null, false, 1, 10);
+        SearchResponse byScore = search("terremoto OR calcio", "", null, null, false, 1, 10);
         printResponse("terremoto calcio  [ordinamento: rilevanza]", byScore);
         List<SearchResult> sr = results(byScore);
         boolean scoreDesc = true;
