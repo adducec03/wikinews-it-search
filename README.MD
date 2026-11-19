@@ -1,22 +1,84 @@
 # WikiNews
 
+Motore di ricerca full-text sulle notizie in italiano di [it.wikinews.org](https://it.wikinews.org)
+(dump del 20/03/2025, 12.261 articoli), con interfaccia web per ricerca, filtri e snippet evidenziati.
+
 ### Tecnologie utilizzate
-- Springboot & Maven
-- Apache Lucene
+- Java 21, Spring Boot & Maven
+- Apache Lucene 9.12
+- Jsoup (estrazione del testo dall'HTML)
 - Thymeleaf
+- JUnit 5
 
-### Come far partire l'applicazione
-Scariricare il file compresso da [questo link](https://dumps.wikimedia.org/other/enterprise_html/runs/20250320/itwikinews-NS0-20250320-ENTERPRISE-HTML.json.tar.gz), ed estrarre il contenuto in una cartella `wikinews/data`.
-Poi usare lo script di partenza, dopo averlo reso eseguibile
+## Installazione
 
-Linux:
-```
+### Prerequisiti
+- **Java 21** (JDK). Per controllare la versione installata: `java -version`.
+  Se manca, si può scaricare per esempio da [Adoptium](https://adoptium.net/) (Temurin 21).
+- **Git**, per scaricare il progetto.
+- Non serve installare Maven: il progetto include il wrapper (`mvnw` / `mvnw.cmd`), che lo scarica da solo al primo uso.
+- Circa 1 GB di spazio libero (dump estratto 564 MB, più l'indice e le dipendenze).
+
+Il dump di Wikinews non è nel repository (è troppo grande): va scaricato a parte,
+[da questo link](https://dumps.wikimedia.org/other/enterprise_html/runs/20250320/itwikinews-NS0-20250320-ENTERPRISE-HTML.json.tar.gz)
+(archivio di 73 MB), ed estratto nella cartella `wikinews/data/`. Il file estratto deve essere
+`wikinews/data/itwikinews_namespace_0_0.ndjson`. I comandi qui sotto fanno tutto questo.
+
+### Linux / macOS
+Da un terminale:
+```bash
+git clone https://github.com/adducec03/wikinews-it-search.git
+cd wikinews-it-search
+
+# scarica ed estrai il dump in wikinews/data/
+mkdir -p wikinews/data
+curl -L -o itwikinews.tar.gz https://dumps.wikimedia.org/other/enterprise_html/runs/20250320/itwikinews-NS0-20250320-ENTERPRISE-HTML.json.tar.gz
+tar -xzf itwikinews.tar.gz -C wikinews/data
+rm itwikinews.tar.gz
+
+# rendi eseguibili gli script (solo la prima volta) e avvia
+chmod +x start.sh run-tests.sh wikinews/mvnw
 ./start.sh
 ```
-Windows:
+
+### Windows
+Da **PowerShell** (Windows 10 e successivi includono già `curl.exe` e `tar`):
+```powershell
+git clone https://github.com/adducec03/wikinews-it-search.git
+cd wikinews-it-search
+
+# scarica ed estrai il dump in wikinews\data\
+mkdir wikinews\data
+curl.exe -L -o itwikinews.tar.gz https://dumps.wikimedia.org/other/enterprise_html/runs/20250320/itwikinews-NS0-20250320-ENTERPRISE-HTML.json.tar.gz
+tar -xzf itwikinews.tar.gz -C wikinews\data
+del itwikinews.tar.gz
+
+# avvia
+powershell -ExecutionPolicy Bypass -File .\start.ps1
 ```
-./start.ps1
-```
+`-ExecutionPolicy Bypass` serve perché Windows, di default, blocca l'esecuzione degli script PowerShell scaricati.
+
+### Uso
+- Al primo avvio Maven scarica le dipendenze (qualche minuto, solo la prima volta), poi l'applicazione
+  indicizza tutto il dump (circa 15 secondi). Quando nel terminale compare `Indicizzazione completata!`
+  aprire il browser su **http://localhost:8080**.
+- L'indice viene ricostruito a ogni avvio. Per fermare l'applicazione: `Ctrl+C` nel terminale.
+- Esempi di ricerca: `terremoto Abruzzo`, `"crisi economica"` (frase esatta), `+calcio -serie`
+  (parola obbligatoria / esclusa), `categories:sport` (ricerca in un campo), `terrem*` (carattere jolly).
+  Dal pannello "Filtri e ordinamento" si filtra per categoria (con suggerimenti) e per intervallo di date,
+  e si ordina per rilevanza o per data.
+
+### Configurazione
+In `wikinews/src/main/resources/application.properties`:
+- `wikinews.data.maxArticle`: numero massimo di articoli da indicizzare (per uno sviluppo più veloce si può abbassare);
+- `wikinews.search.*`: pesi dei campi, operatore AND/OR e bonus di prossimità usati dalla ricerca.
+
+### Problemi frequenti
+- **`Dump non trovato`** all'avvio: il file non è in `wikinews/data/itwikinews_namespace_0_0.ndjson`
+  (controllare di averlo estratto nella cartella giusta).
+- **`permission denied: ./start.sh`** (Linux/macOS): eseguire `chmod +x start.sh run-tests.sh wikinews/mvnw`.
+- **Porta 8080 occupata**: chiudere l'altro programma che la usa, oppure avviare dalla cartella `wikinews` con
+  `./mvnw spring-boot:run -Dspring-boot.run.arguments=--server.port=9090` e aprire http://localhost:9090.
 
 ## Funzionamento
 
@@ -43,47 +105,54 @@ Il filtro per categoria ha una piccolo pannello di consiglio di categorie presen
 Nella ricerca è stato aggiunta un'opzione per consiglio di stringa inserita, il "forse cercavi..."
 
 ## Test
-Il sistema viene con 2 tipologie di test:
 
-La prima consiste in una serie di test per il funzionamento di tutte le singole fasi del programma. I test utilizzano articoli fatti appositamente per i test, così da poter confrontare i risultati. Questo potrebbe anche seguire la logica della separazione dei dati di test, anche se in questo caso non si parlare di LLM.
+### Eseguire tutti i test
+Lo script `run-tests` esegue tutti i test del sistema e alla fine stampa un riepilogo con l'esito di ogni fase.
+Va lanciato dalla cartella principale del progetto.
 
-La seconda, invece, va a valutare con un'unico test il sistema nel suo complesso attraverso la search con 21  query ripetute 10 volte ciascuna per vedere il tempo di latenza, la variazione fra la prima e le altre volte, anche rispetto alle query in sè.
+Linux / macOS:
+```bash
+./run-tests.sh          # tutti i test (circa 2 minuti, serve il dump)
+./run-tests.sh quick    # solo i test funzionali (pochi secondi, il dump non serve)
+```
+Windows (PowerShell):
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-tests.ps1          # tutti i test
+powershell -ExecutionPolicy Bypass -File .\run-tests.ps1 quick    # solo i test funzionali
+```
 
-| Query | Hit | Prima (ms) | Min (ms) | Media (ms) | Max (ms) |
-| --- | --- | --- | --- | --- | --- |
-| Termine singolo | 2 | 484.99 | 5.68 | 7.78 | 10.33 |
-| Termine frequente | 82 | 51.56 | 21.11 | 37.37 | 67.72 |
-| Altro termine | 14 | 19.15 | 14.26 | 17.46 | 28.96 |
-| Nome proprio | 16 | 19.23 | 8.80 | 11.59 | 15.20 |
-| Due termini | 3 | 12.41 | 6.31 | 8.75 | 11.33 |
-| Frase esatta | 1 | 40.08 | 4.55 | 6.83 | 12.82 |
-| \+ e - | 27 | 47.24 | 8.95 | 12.25 | 16.88 |
-| Campo categories | 35 | 5.79 | 1.91 | 2.55 | 3.14 |
-| 2 parole | 2 | 9.22 | 2.26 | 3.77 | 4.57 |
-| 2 parole in OR | 2 | 4.27 | 2.21 | 3.21 | 3.97 |
-| 2 parole in AND | 0 | 1.24 | 0.59 | 1.03 | 2.01 |
-| Wildcard | 0 | 21.73 | 1.59 | 3.12 | 5.69 |
-| Query lunga | 29 | 19.00 | 8.91 | 12.82 | 19.28 |
-| Nessun risultato | 0 | 0.76 | 0.55 | 0.68 | 1.05 |
-| Testo + categoria | 11 | 14.45 | 8.18 | 8.99 | 9.87 |
-| Solo categoria | 35 | 5.31 | 1.84 | 2.20 | 2.70 |
-| Testo + date | 4 | 17.57 | 4.63 | 7.01 | 8.97 |
-| Solo date | 36 | 1.87 | 1.65 | 1.78 | 2.03 |
-| Testo + cat + date | 0 | 2.18 | 1.67 | 1.93 | 2.10 |
-| Ordinata per data | 2 | 38.05 | 2.23 | 3.64 | 6.84 |
-| Tutti i documenti | 100 | 3.97 | 1.49 | 2.52 | 5.02 |
+Lo script è diviso in tre fasi:
 
-#### Riepilogo
+| Fase | Cosa esegue | Serve il dump |
+|---|---|---|
+| 1. Test funzionali e unitari | `WikinewsApplicationTests` (13 test su un piccolo indice in memoria con articoli costruiti a mano: analyzer, pesi dei campi, sintassi, filtri, ordinamento, paginazione, snippet, casi limite), `IrMetricsTest` (formule delle metriche su esempi calcolati a mano), `QueryFactorySettingsTest` (configurazione della ricerca) | no |
+| 2. Valutazione sull'indice completo | known-item search, valutazione per argomento con giudizi di rilevanza, efficienza (tempo di indicizzazione, dimensione dell'indice, latenza), latenza per tipo di query. Costruisce l'indice completo in `wikinews/target/evaluation-index` | sì |
+| 3. Invarianti e ablation | `PerformanceTest`: relazioni che devono valere sempre sull'indice reale (filtri, operatori booleani, paginazione) e ablation su pesi, campi, operatore, modello di ranking, parametri BM25, analyzer | sì |
 
-| Indicatore | Valore |
-| --- | --- |
-| Ricerche misurate | 210 |
-| Tempo medio | 7.49 ms |
-| Ricerca più lenta | 67.72 ms |
-| Ricerche al secondo (un thread) | 134 |
+Se il dump manca, le fasi 2 e 3 vengono saltate e lo script lo segnala. I risultati vengono salvati in:
+- `wikinews/target/surefire-reports/`: esito di ogni test;
+- `wikinews/target/evaluation/`: tabelle della valutazione (known-item, metriche per argomento, efficienza).
 
-Quindi il sistema sembra riuscire. Si possono notere le sostanziali differenze fra il caricamento di tutto alla prima query in generale, ma anche della
-prima passata di query per ciascuna. Poi anche sulla differenza di tempo della query "2 parole" che poi viene ripetuta con OR e AND che cambiano la velocità e il risutato del lavoro.
+Per lanciare un singolo test di valutazione, dalla cartella `wikinews`:
+```bash
+./mvnw test -Dtest=KnownItemEvaluationTest -DexcludedGroups=none
+```
+(`-DexcludedGroups=none` serve perché i test sull'indice completo, con tag `evaluation`, sono esclusi dal normale
+`./mvnw test`, che esegue solo quelli veloci.)
+
+### Metriche e risultati principali
+- **Copertura**: 12.261 articoli indicizzati su 12.261, 0 errori, 12.213 documenti (i 48 duplicati sono sostituiti dalla versione più recente).
+- **Efficienza** (Apple M1, codec di default di Lucene): indicizzazione completa in circa 12 s, indice di 37,5 MB,
+  latenza mediana circa 2 ms e 95° percentile sotto i 10 ms.
+- **Qualità**:
+  - known-item search (500 articoli che cercano se stessi): con la query uguale al titolo l'articolo è primo nel 94% dei casi (MRR 0,959);
+  - valutazione per argomento (10 query, giudizi di rilevanza 0/1/2): P@10 0,92, MAP 0,92, nDCG@10 0,92, MRR 1.
+- **Ablation**: l'operatore AND e il bonus di prossimità sono le scelte che incidono di più; pesi dei campi,
+  parametri BM25 e categorie spostano i risultati di pochi centesimi; il codec di default rende l'indice 9 volte
+  più piccolo e le ricerche 2–3 volte più veloci rispetto a `SimpleTextCodec`.
+
+Metodologia, tabelle complete e limiti della valutazione: `README_LONG.md` (descrizione del progetto e risultati)
+e `TEST_NOTES.md` (note dettagliate sui test).
 
 ## Elemennti :
 ### Analyzer
@@ -95,12 +164,7 @@ Viene creato in `AnalyzerFactory.java`
 ...
 
 ## Sviluppi futuri
-- Inizializzare i campi non indicizzati
-- Ablazioni e metriche
-
-
-## Metriche
-
-- Latenza 
-- (todo)nDCG@k : che valuta il rapporto dei casi presi rispetto al risultato perfetto.
-- (todo) precision@k : quanti mi interessa dei primi k
+- "Minimum should match" (es. almeno 2 parole su 3) come compromesso tra AND e OR.
+- Indice persistente, invece di ricostruirlo a ogni avvio.
+- Categorie indicizzate anche come valori esatti, per un filtro preciso e per mostrare i conteggi per categoria.
+- Sinonimi (USA / Stati Uniti, ONU / Nazioni Unite) e gestione degli accenti.
