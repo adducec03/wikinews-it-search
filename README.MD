@@ -1,6 +1,7 @@
 # WikiNews
 
 ### Tecnologie utilizzate
+- Java 21
 - Springboot & Maven
 - Apache Lucene
 - Thymeleaf
@@ -49,58 +50,19 @@ La prima consiste in una serie di test per il funzionamento di tutte le singole 
 
 La seconda, invece, va a valutare con un'unico test il sistema nel suo complesso attraverso la search con 21  query ripetute 10 volte ciascuna per vedere il tempo di latenza, la variazione fra la prima e le altre volte, anche rispetto alle query in sè.
 
-| Query | Hit | Prima (ms) | Min (ms) | Media (ms) | Max (ms) |
-| --- | --- | --- | --- | --- | --- |
-| Termine singolo | 2 | 484.99 | 5.68 | 7.78 | 10.33 |
-| Termine frequente | 82 | 51.56 | 21.11 | 37.37 | 67.72 |
-| Altro termine | 14 | 19.15 | 14.26 | 17.46 | 28.96 |
-| Nome proprio | 16 | 19.23 | 8.80 | 11.59 | 15.20 |
-| Due termini | 3 | 12.41 | 6.31 | 8.75 | 11.33 |
-| Frase esatta | 1 | 40.08 | 4.55 | 6.83 | 12.82 |
-| \+ e - | 27 | 47.24 | 8.95 | 12.25 | 16.88 |
-| Campo categories | 35 | 5.79 | 1.91 | 2.55 | 3.14 |
-| 2 parole | 2 | 9.22 | 2.26 | 3.77 | 4.57 |
-| 2 parole in OR | 2 | 4.27 | 2.21 | 3.21 | 3.97 |
-| 2 parole in AND | 0 | 1.24 | 0.59 | 1.03 | 2.01 |
-| Wildcard | 0 | 21.73 | 1.59 | 3.12 | 5.69 |
-| Query lunga | 29 | 19.00 | 8.91 | 12.82 | 19.28 |
-| Nessun risultato | 0 | 0.76 | 0.55 | 0.68 | 1.05 |
-| Testo + categoria | 11 | 14.45 | 8.18 | 8.99 | 9.87 |
-| Solo categoria | 35 | 5.31 | 1.84 | 2.20 | 2.70 |
-| Testo + date | 4 | 17.57 | 4.63 | 7.01 | 8.97 |
-| Solo date | 36 | 1.87 | 1.65 | 1.78 | 2.03 |
-| Testo + cat + date | 0 | 2.18 | 1.67 | 1.93 | 2.10 |
-| Ordinata per data | 2 | 38.05 | 2.23 | 3.64 | 6.84 |
-| Tutti i documenti | 100 | 3.97 | 1.49 | 2.52 | 5.02 |
-
-#### Riepilogo
-
-| Indicatore | Valore |
-| --- | --- |
-| Ricerche misurate | 210 |
-| Tempo medio | 7.49 ms |
-| Ricerca più lenta | 67.72 ms |
-| Ricerche al secondo (un thread) | 134 |
-
-Quindi il sistema sembra riuscire. Si possono notere le sostanziali differenze fra il caricamento di tutto alla prima query in generale, ma anche della
+Si possono notere le sostanziali differenze fra il caricamento di tutto alla prima query in generale, ma anche della
 prima passata di query per ciascuna. Poi anche sulla differenza di tempo della query "2 parole" che poi viene ripetuta con OR e AND che cambiano la velocità e il risutato del lavoro.
 
-## Elemennti :
+Si possono replicare i test su Linux
+```
+./start-test.sh
+```
+
+## Elementi :
 ### Analyzer
 In questo progetto viene utilizzato un AnalyzerWrapper formato da `ItalianAnalyzer()` come analyzer principale, ovvero per i campi senza un analyzer specificato, e da un `categoryAnalyzer`. Quest'ultimo è un custom analyzer, mappato solo per il field *CATEGORIES* ed è formato da uno **StardardToken**, **LowerCaseFilter** e uno **StopFilter** con l'aggiunta delle stopWords "articoli" e "pubblicati". 
 
 Viene creato in `AnalyzerFactory.java`
 
-### Parcer
-...
-
-## Sviluppi futuri
-- Inizializzare i campi non indicizzati
-- Ablazioni e metriche
 
 
-## Metriche
-
-- Latenza 
-- (todo)nDCG@k : che valuta il rapporto dei casi presi rispetto al risultato perfetto.
-- (todo) precision@k : quanti mi interessa dei primi k
