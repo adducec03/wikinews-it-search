@@ -2,7 +2,9 @@ package it.wikinews.lucene.search;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.document.LongPoint;
@@ -21,63 +23,69 @@ import it.wikinews.lucene.index.IndexFields;
 
 public class QueryFactory {
 
-    // quante posizioni di distanza sono tollerate tra le parole
-    // es query "elezioni comunali roma"
-    // per il testo "elezioni comunali a roma" rientra nel proximity slop e ha proximity boost
-    // per il testo "elezioni comunali [..500 parole...] roma" non ha il proximity boost
-    private static final int PROXIMITY_SLOP = 3;
-    // quanto boosta se le parole rientrano in proximity slop
-    private static final float PROXIMITY_BOOST = 2.0f;
-
-    // termine nel titolo vale x3
-    private static final float NAME_BOOST = 3f;
-    // termine nell'abstract vale x2
-    private static final float ABSTRACT_BOOST = 2f;
-    // termine nel contenuto vale x1
-    private static final float CONTENT_BOOST = 1f;
-    // termine nella categoria vale x1
-    private static final float CATEGORIES_BOOST = 1f;
-
-
-
+    /**
+     * Costruisce la query con i pesi di default (vedi SearchSettings).
+     * Usato dai suggerimenti: lì conta solo QUALI articoli vengono trovati, e i boost
+     * cambiano soltanto l'ordine, quindi i pesi configurati non servono.
+     */
     public static Query build(Analyzer analyzer, String text, String category, LocalDate from, LocalDate to) throws ParseException {
+        return build(analyzer, new SearchSettings(), text, category, from, to);
+    }
+
+    /** Costruisce la query usando i pesi indicati in settings. */
+    public static Query build(Analyzer analyzer, SearchSettings settings, String text, String category,
+                              LocalDate from, LocalDate to) throws ParseException {
 
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
 
-        Query textQuery = buildTextQuery(text, analyzer);
+        Query textQuery = buildTextQuery(text, analyzer, settings);
 
         builder.add(textQuery, BooleanClause.Occur.MUST);
-        addProximityBoost(builder, analyzer, text);
+        addProximityBoost(builder, analyzer, text, settings);
         addCategoryFilter(builder, analyzer, category);
         addDateFilter(builder, from, to);
 
         return builder.build();
     }
 
-    private static Query buildTextQuery(String text, Analyzer analyzer) throws ParseException {
+    private static Query buildTextQuery(String text, Analyzer analyzer, SearchSettings settings) throws ParseException {
 
         if (text == null || text.isBlank()) {
             return new MatchAllDocsQuery();
         }
 
-            String[] fields = new String[] {
-            IndexFields.NAME,
-            IndexFields.ABSTRACT,
-            IndexFields.CONTENT,
-            IndexFields.CATEGORIES
-        };
-
+        // campi in cui cercare, ognuno con il suo peso.
+        // un campo con boost 0 non viene cercato (utile per l'ablation, es. "senza categorie")
+        List<String> fieldList = new ArrayList<String>();
         Map<String, Float> boosts = new HashMap<String, Float>();
-        boosts.put(IndexFields.NAME, NAME_BOOST);
-        boosts.put(IndexFields.ABSTRACT, ABSTRACT_BOOST);
-        boosts.put(IndexFields.CONTENT, CONTENT_BOOST);
-        boosts.put(IndexFields.CATEGORIES, CATEGORIES_BOOST);
+        addField(fieldList, boosts, IndexFields.NAME, settings.getNameBoost());
+        addField(fieldList, boosts, IndexFields.ABSTRACT, settings.getAbstractBoost());
+        addField(fieldList, boosts, IndexFields.CONTENT, settings.getContentBoost());
+        addField(fieldList, boosts, IndexFields.CATEGORIES, settings.getCategoriesBoost());
+
+        if (fieldList.isEmpty()) {
+            throw new IllegalStateException("Configurazione non valida: almeno un campo deve avere boost maggiore di 0");
+        }
+        String[] fields = fieldList.toArray(new String[0]);
 
         MultiFieldQueryParser parser = new MultiFieldQueryParser(fields, analyzer, boosts);
 
-        parser.setDefaultOperator(QueryParser.Operator.AND);
+        // operatore tra le parole della query: AND = tutte obbligatorie, OR = ne basta una
+        if (settings.isAndOperator()) {
+            parser.setDefaultOperator(QueryParser.Operator.AND);
+        } else {
+            parser.setDefaultOperator(QueryParser.Operator.OR);
+        }
 
         return parser.parse(text);
+    }
+
+    /** Aggiunge il campo alla ricerca solo se il suo boost è maggiore di 0. */
+    private static void addField(List<String> fieldList, Map<String, Float> boosts, String field, float boost) {
+        if (boost > 0) {
+            fieldList.add(field);
+            boosts.put(field, boost);
+        }
     }
 
     private static void addCategoryFilter(BooleanQuery.Builder builder, Analyzer analyzer, String category) throws ParseException {
@@ -109,11 +117,20 @@ public class QueryFactory {
         builder.add(dateQuery, BooleanClause.Occur.FILTER);
     }
 
-    private static void addProximityBoost(BooleanQuery.Builder builder, Analyzer analyzer, String text) {
+    private static void addProximityBoost(BooleanQuery.Builder builder, Analyzer analyzer, String text,
+                                          SearchSettings settings) {
 
         if (text == null || text.isBlank()) {
             return;
         }
+
+        // boost di prossimità disattivato dalla configurazione
+        if (settings.getProximityBoost() <= 0) {
+            return;
+        }
+
+        int slop = settings.getProximitySlop();
+        float boost = settings.getProximityBoost();
 
         // una sola parola: non ha senso parlare di vicinanza
         if (!text.trim().contains(" ")) {
@@ -127,14 +144,14 @@ public class QueryFactory {
 
         QueryBuilder queryBuilder = new QueryBuilder(analyzer);
 
-        Query phraseInTitle = queryBuilder.createPhraseQuery(IndexFields.NAME, text, PROXIMITY_SLOP);
+        Query phraseInTitle = queryBuilder.createPhraseQuery(IndexFields.NAME, text, slop);
         if (phraseInTitle != null) {
-            builder.add(new BoostQuery(phraseInTitle, PROXIMITY_BOOST), BooleanClause.Occur.SHOULD);
+            builder.add(new BoostQuery(phraseInTitle, boost), BooleanClause.Occur.SHOULD);
         }
 
-        Query phraseInContent = queryBuilder.createPhraseQuery(IndexFields.CONTENT, text, PROXIMITY_SLOP);
+        Query phraseInContent = queryBuilder.createPhraseQuery(IndexFields.CONTENT, text, slop);
         if (phraseInContent != null) {
-            builder.add(new BoostQuery(phraseInContent, PROXIMITY_BOOST), BooleanClause.Occur.SHOULD);
+            builder.add(new BoostQuery(phraseInContent, boost), BooleanClause.Occur.SHOULD);
         }
     }
 

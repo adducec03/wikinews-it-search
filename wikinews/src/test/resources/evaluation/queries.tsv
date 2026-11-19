@@ -1,0 +1,29 @@
+qid	query	need
+q01	terremoto Abruzzo	Notizie sul terremoto in Abruzzo (L'Aquila, 2009): scosse, vittime, soccorsi, ricostruzione.
+q02	terremoto	Notizie su un qualunque terremoto, in Italia o nel mondo.
+q03	tsunami	Notizie su tsunami o maremoti e sulle loro conseguenze.
+q04	elezioni politiche italiane	Elezioni politiche in Italia (rinnovo del Parlamento): campagna, risultati, affluenza. Non elezioni locali o di altri paesi.
+q05	Obama elezioni presidenziali	Barack Obama e le elezioni presidenziali degli Stati Uniti: candidatura, campagna, risultati.
+q06	Trump	Notizie che riguardano Donald Trump.
+q07	Benedetto XVI viaggio	Viaggi e visite pastorali di papa Benedetto XVI.
+q08	Papa Francesco	Notizie su papa Francesco (Jorge Mario Bergoglio).
+q09	governo Berlusconi	Attività, provvedimenti e crisi dei governi guidati da Silvio Berlusconi.
+q10	Palio di Siena	Corse del Palio di Siena: contrade vincitrici, fantini, cronaca della corsa.
+q11	Giro d'Italia	Tappe, classifiche e vincitori del Giro d'Italia di ciclismo.
+q12	Gran Premio Formula 1	Gare del campionato mondiale di Formula 1: risultati e cronaca.
+q13	Mostra del cinema di Venezia	Edizioni della Mostra internazionale d'arte cinematografica di Venezia: film in concorso, premi, Leone d'oro.
+q14	Festival di Sanremo	Edizioni del Festival della canzone italiana di Sanremo: partecipanti, vincitori, polemiche.
+q15	finale Champions League	Finali della UEFA Champions League. Non le partite dei gironi o dei turni precedenti.
+q16	Sei Nazioni rugby	Partite e risultati del torneo di rugby Sei Nazioni.
+q17	premio Nobel per la pace	Assegnazione del premio Nobel per la pace: vincitori e motivazioni.
+q18	Voyager 2	La sonda spaziale Voyager 2: missione, scoperte, stato degli strumenti.
+q19	NASA Marte	Missioni della NASA verso Marte: rover, sonde, scoperte.
+q20	guerra Ucraina Russia	Conflitto tra Russia e Ucraina (Crimea, Donbass, invasione del 2022) e sue conseguenze.
+q21	Gaza Israele	Conflitto tra Israele e i gruppi palestinesi nella Striscia di Gaza.
+q22	attentato Afghanistan	Attentati e attacchi armati avvenuti in Afghanistan.
+q23	incidente ferroviario	Incidenti ferroviari: deragliamenti, scontri tra treni, vittime.
+q24	alluvione	Alluvioni e inondazioni: danni, vittime, stato di emergenza.
+q25	sciopero trasporti	Scioperi nel settore dei trasporti (treni, aerei, trasporto pubblico locale).
+q26	"crisi economica"	Notizie sulla crisi economica o finanziaria e sui suoi effetti.
+q27	referendum	Referendum in Italia o in altri paesi: quesiti, campagna, risultati.
+q28	Juventus scudetto	La Juventus e la vittoria (o la corsa) per lo scudetto del campionato di Serie A.
