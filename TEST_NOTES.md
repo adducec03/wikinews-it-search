@@ -2,7 +2,8 @@
 
 Appunti del gruppo per la parte "strategia di test" dell'homework e per la relazione finale:
 cosa misuriamo, come leggere le metriche, quali scelte verificare con l'ablation e quali errori evitare.
-Lo stato dei lavori (fatto / da fare) è in `README_LONG.md`.
+Lo stato dei lavori (fatto / da fare) è in `TODO_LONG.md`; la descrizione complessiva del progetto e dei risultati,
+da usare per relazione e presentazione, è in `README_LONG.md`.
 
 Ultimo aggiornamento: 2026-11-18
 
